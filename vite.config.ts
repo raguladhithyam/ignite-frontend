@@ -13,7 +13,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://ignite-backend-ak0h.onrender.com/api',
+        target: 'https://ignite-backend-ak0h.onrender.com',
         changeOrigin: true,
       },
     },
