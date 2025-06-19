@@ -161,8 +161,14 @@ export default function LoginPage() {
               <h3 className="font-medium text-sm mb-2">Demo Credentials:</h3>
               <div className="text-xs text-gray-600 space-y-1">
                 <p><strong>Admin:</strong> admin@ignite2026.com / admin123</p>
-                <p><strong>Brigade Lead:</strong> lead1@ignite2026.com / lead123</p>
-                <p><strong>Student:</strong> IG2026001 / student123</p>
+                <p><strong>Brigade Lead 1:</strong> lead1@ignite2026.com / lead123</p>
+                <p><strong>Brigade Lead 2:</strong> lead2@ignite2026.com / lead123</p>
+                <p><strong>Student 1:</strong> IG2026001 / student123</p>
+                <p><strong>Student 2:</strong> IG2026002 / student123</p>
+                <p><strong>Student 3:</strong> IG2026003 / student123</p>
+                <p><strong>Student 4:</strong> IG2026004 / student123</p>
+                <p><strong>Student 5:</strong> IG2026005 / student123</p>
+                <p><strong>Student 6:</strong> IG2026006 / student123</p>
               </div>
             </div>
           </CardContent>
