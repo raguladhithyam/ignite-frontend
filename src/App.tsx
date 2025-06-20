@@ -16,6 +16,7 @@ import AdminAttendance from './pages/admin/AdminAttendance'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
 import AdminNotifications from './pages/admin/AdminNotifications'
 import AdminStudentSummary from './pages/admin/AdminStudentSummary'
+import AdminLeadAttendance from './pages/admin/AdminLeadAttendance'
 
 // Brigade Lead Pages
 import BrigadeStudents from './pages/brigade-lead/BrigadeStudents'
@@ -67,6 +68,7 @@ function App() {
             <Route path="/admin/attendance" element={<AdminAttendance />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
+            <Route path="/admin/lead-attendance" element={<AdminLeadAttendance />} />
             <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
           </>
         )}
