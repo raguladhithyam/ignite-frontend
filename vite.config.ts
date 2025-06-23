@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config(); // Load env variables
 
 export default defineConfig({
   plugins: [react()],
@@ -13,7 +16,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://ignite-backend-ak0h.onrender.com',
+        target: process.env.VITE_API_URL,
         changeOrigin: true,
       },
     },

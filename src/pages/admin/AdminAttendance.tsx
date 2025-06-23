@@ -5,17 +5,19 @@ import { Badge } from '@/components/ui/badge'
 import { attendanceApi } from '@/api/attendance'
 import { eventsApi } from '@/api/events'
 import { brigadesApi } from '@/api/brigades'
-import { AttendanceRecord, Event, EventDay, Brigade } from '@/types'
-import { UserCheck, Clock, Users, Calendar } from 'lucide-react'
+import { AttendanceRecord, Event, Brigade } from '@/types'
+import { UserCheck, Clock, Users, Calendar, Download } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
-import { formatDateTime, formatTime } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
+import * as XLSX from 'xlsx'
 
 export default function AdminAttendance() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [brigades, setBrigades] = useState<Brigade[]>([])
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState('')
   const [selectedEventDay, setSelectedEventDay] = useState('')
   const [selectedBrigade, setSelectedBrigade] = useState('')
@@ -94,6 +96,91 @@ export default function AdminAttendance() {
     }
   }
 
+  const fetchAllAttendanceForExport = async () => {
+    try {
+      const response = await attendanceApi.getAttendanceRecords({
+        eventDayId: selectedEventDay,
+        brigadeId: selectedBrigade || undefined,
+        session: selectedSession || undefined,
+        page: 1,
+        limit: 999999 // Get all records for export
+      })
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  }
+
+  const exportToExcel = async () => {
+    if (!selectedEventDay) {
+      toast.error('Please select an event day to export')
+      return
+    }
+
+    try {
+      setExporting(true)
+      
+      // Fetch all records for export (not just current page)
+      const allRecords = await fetchAllAttendanceForExport()
+      
+      if (allRecords.length === 0) {
+        toast.error('No records to export')
+        return
+      }
+
+      // Prepare data for Excel
+      const excelData = allRecords.map(record => ({
+        'Student Name': `${record.student?.firstName || ''} ${record.student?.lastName || ''}`.trim(),
+        'Roll Number': record.student?.tempRollNumber || '',
+        'Brigade': record.student?.brigade?.name || 'No Brigade',
+        'Session': record.session,
+        'Status': record.status,
+        'Marked At': formatDateTime(record.markedAt)
+      }))
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new()
+      const worksheet = XLSX.utils.json_to_sheet(excelData)
+
+      // Auto-size columns
+      const columnWidths = [
+        { wch: 25 }, // Student Name
+        { wch: 15 }, // Roll Number
+        { wch: 20 }, // Brigade
+        { wch: 12 }, // Session
+        { wch: 12 }, // Status
+        { wch: 20 }  // Marked At
+      ]
+      worksheet['!cols'] = columnWidths
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Records')
+
+      // Generate filename
+      const selectedEventData = getSelectedEvent()
+      const selectedEventDayData = getEventDays().find(day => day.id === selectedEventDay)
+      const selectedBrigadeData = brigades.find(brigade => brigade.id === selectedBrigade)
+      
+      const eventName = selectedEventData?.name || 'Event'
+      const eventDate = selectedEventDayData ? new Date(selectedEventDayData.date).toISOString().split('T')[0] : 'Date'
+      const brigadeName = selectedBrigadeData?.name || 'AllBrigades'
+      const sessionName = selectedSession || 'AllSessions'
+      
+      const filename = `${eventName}_${eventDate}_${brigadeName}_${sessionName}.xlsx`
+        .replace(/[^a-zA-Z0-9_.-]/g, '_') // Replace invalid filename characters
+
+      // Save file
+      XLSX.writeFile(workbook, filename)
+      
+      toast.success(`Exported ${allRecords.length} records to ${filename}`)
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast.error('Failed to export data')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const getSelectedEvent = () => {
     return events.find(e => e.id === selectedEvent)
   }
@@ -118,9 +205,19 @@ export default function AdminAttendance() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Attendance Records</h1>
-        <p className="text-gray-600 mt-2">View and manage attendance records</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Attendance Records</h1>
+          <p className="text-gray-600 mt-2">View and manage attendance records</p>
+        </div>
+        <Button 
+          onClick={exportToExcel}
+          disabled={!selectedEventDay || loading || exporting}
+          className="flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          {exporting ? 'Exporting...' : 'Export Data'}
+        </Button>
       </div>
 
       {/* Filters */}

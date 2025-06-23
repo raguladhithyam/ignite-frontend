@@ -13,6 +13,7 @@ import AdminBrigades from './pages/admin/AdminBrigades'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminEvents from './pages/admin/AdminEvents'
 import AdminAttendance from './pages/admin/AdminAttendance'
+import AdminLeadAttendance from './pages/admin/AdminLeadAttendance'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
 import AdminNotifications from './pages/admin/AdminNotifications'
 import AdminStudentSummary from './pages/admin/AdminStudentSummary'
@@ -65,6 +66,7 @@ function App() {
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/admin/attendance" element={<AdminAttendance />} />
+            <Route path="/admin/lead-attendance" element={<AdminLeadAttendance />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
             <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />

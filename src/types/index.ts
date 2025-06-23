@@ -90,32 +90,40 @@ export interface AttendanceRecord {
 
 export interface LeadAttendanceRecord {
   id: string
-  leadId: string
-  eventDayId: string
+  userId: string
+  date: string
   status: 'PRESENT' | 'ABSENT' | 'LATE'
   markedAt: string
-  markedBy?: string
+  markedBy: string
+  notes?: string
   createdAt: string
   updatedAt: string
-  lead: {
+  user: {
     id: string
     firstName: string
     lastName: string
     email: string
-  }
-  eventDay: {
-    id: string
-    date: string
-    event: {
+    brigadeLeadBrigades: Array<{
       id: string
       name: string
-    }
+    }>
   }
-  marker?: {
+  marker: {
     id: string
     firstName: string
     lastName: string
   }
+}
+
+export interface BrigadeLead {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  brigadeLeadBrigades: Array<{
+    id: string
+    name: string
+  }>
 }
 
 export interface Notification {
