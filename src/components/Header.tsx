@@ -37,7 +37,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           
           <div>
             <h1 className="text-xl font-semibold text-gray-900">
-              Ignite 2026
+              Ignite
             </h1>
             <p className="text-sm text-gray-500">
               Attendance Management System

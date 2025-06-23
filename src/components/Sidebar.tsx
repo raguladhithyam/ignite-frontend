@@ -92,7 +92,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">I26</span>
             </div>
-            <span className="font-semibold text-gray-900">Ignite 2026</span>
+            <span className="font-semibold text-gray-900">Ignite</span>
           </div>
           <Button
             variant="ghost"
