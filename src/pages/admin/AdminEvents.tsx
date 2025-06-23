@@ -298,7 +298,7 @@ export default function AdminEvents() {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Ignite 2026"
+                placeholder="Ignite"
                 required
               />
             </div>

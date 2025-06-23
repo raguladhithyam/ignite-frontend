@@ -58,7 +58,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-xl">I26</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Ignite 2026</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Ignite</h1>
           <p className="text-gray-600 mt-2">Attendance Management System</p>
         </div>
 
