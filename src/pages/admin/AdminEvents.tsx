@@ -72,7 +72,7 @@ export default function AdminEvents() {
         anStartTime: '14:00',
         anEndTime: '17:30'
       })
-    }08  
+    }
 
     setFormData(prev => ({ ...prev, eventDays: days }))
   }
