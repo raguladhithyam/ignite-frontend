@@ -6,6 +6,50 @@ export interface UploadStudentsData {
   createUserAccounts?: boolean
 }
 
+export interface BulkUploadResult {
+  message: string
+  imported: number
+  errors?: string[]
+  users: User[]
+  emailResults: {
+    successful: number
+    failed: number
+    failedEmails: {
+      email: string
+      error: string
+    }[]
+  }
+}
+
+export interface User {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  role: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface UploadStudentsResult {
+  message: string
+  imported: number
+  errors?: string[]
+  students: Student[]
+}
+
+export interface Student {
+  id: string
+  tempRollNumber: string
+  firstName: string
+  lastName: string
+  email?: string
+  phone?: string
+  brigadeId?: string
+  userId?: string
+  createdAt: string
+}
+
 export const uploadsApi = {
   uploadStudents: async (data: UploadStudentsData) => {
     const formData = new FormData()
@@ -16,6 +60,12 @@ export const uploadsApi = {
     return apiClient.upload('/uploads/students', formData)
   },
 
+  bulkUploadUsers: async (file: File): Promise<BulkUploadResult> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.upload('/uploads/users', formData)
+  },
+  
   downloadStudentsTemplate: async (): Promise<Blob> => {
     return apiClient.download('/uploads/template/students')
   },

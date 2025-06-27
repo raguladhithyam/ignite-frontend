@@ -10,22 +10,32 @@ export interface UsersQuery {
 
 export interface CreateUserData {
   email: string
-  password: string
   firstName: string
   lastName: string
   role: 'ADMIN' | 'BRIGADE_LEAD' | 'STUDENT'
+}
+
+export interface UpdateUserData {
+  email?: string
+  firstName?: string
+  lastName?: string
+  role?: 'ADMIN' | 'BRIGADE_LEAD' | 'STUDENT'
+  isActive?: boolean
 }
 
 export const usersApi = {
   getUsers: async (params: UsersQuery = {}): Promise<PaginatedResponse<User>> => {
     const searchParams = new URLSearchParams()
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
+      if (value !== undefined && value !== null && value !== '') {
         searchParams.append(key, value.toString())
       }
     })
     
-    const response = await apiClient.get<{ users: User[]; pagination: any }>(`/users?${searchParams}`)
+    const queryString = searchParams.toString()
+    const url = queryString ? `/users?${queryString}` : '/users'
+    
+    const response = await apiClient.get<{ users: User[]; pagination: any }>(url)
     return {
       data: response.users,
       pagination: response.pagination
@@ -36,7 +46,7 @@ export const usersApi = {
     return apiClient.post('/users', data)
   },
 
-  updateUser: async (id: string, data: Partial<Omit<CreateUserData, 'password'>>): Promise<User> => {
+  updateUser: async (id: string, data: UpdateUserData): Promise<User> => {
     return apiClient.put(`/users/${id}`, data)
   },
 

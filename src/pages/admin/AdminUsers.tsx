@@ -24,8 +24,9 @@ const Checkbox = ({ checked, indeterminate, onCheckedChange, ...props }: {
 }
 import { usersApi } from '@/api/users'
 import { User } from '@/types'
-import { Search, Plus, Edit, Trash2, Key, Loader2, UserX } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Key, Loader2, UserX, Upload } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import FileUpload from '@/components/ui/FileUpload'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -48,6 +49,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { BulkUploadResult, uploadsApi } from '@/api/uploads'
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([])
@@ -62,10 +64,10 @@ export default function AdminUsers() {
   })
   const [showModal, setShowModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
     firstName: '',
     lastName: '',
     role: 'STUDENT' as 'ADMIN' | 'BRIGADE_LEAD' | 'STUDENT'
@@ -93,6 +95,11 @@ export default function AdminUsers() {
   const [isCreatingUser, setIsCreatingUser] = useState(false)
   const [isUpdatingUser, setIsUpdatingUser] = useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState(false)
+
+  // Bulk upload states
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadResult, setUploadResult] = useState<BulkUploadResult | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -126,11 +133,6 @@ export default function AdminUsers() {
       return
     }
 
-    if (!selectedUser && !formData.password) {
-      toast.error('Password is required for new users')
-      return
-    }
-
     try {
       if (selectedUser) {
         setIsUpdatingUser(true)
@@ -144,7 +146,7 @@ export default function AdminUsers() {
       } else {
         setIsCreatingUser(true)
         await usersApi.createUser(formData)
-        toast.success('User created successfully', { duration: 2000 })
+        toast.success('User created successfully and welcome email sent', { duration: 3000 })
       }
       
       fetchUsers()
@@ -178,6 +180,51 @@ export default function AdminUsers() {
     } finally {
       setIsResettingPassword(false)
     }
+  }
+
+  // Bulk upload functions
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file)
+    setUploadResult(null)
+  }
+
+  const handleBulkUpload = async () => {
+    if (!selectedFile) {
+      toast.error('Please select a file first')
+      return
+    }
+
+    try {
+      setIsUploading(true)
+      const result = await uploadsApi.bulkUploadUsers(selectedFile)
+      setUploadResult(result)
+      
+      if (result.emailResults.failed > 0) {
+        toast.warning(
+          `${result.users.length} users created, but ${result.emailResults.failed} emails failed to send`,
+          { duration: 5000 }
+        )
+      } else {
+        toast.success(
+          `${result.users.length} users created successfully and welcome emails sent`,
+          { duration: 3000 }
+        )
+      }
+      
+      fetchUsers()
+      setSelectedFile(null)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to upload users')
+      setUploadResult(null)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const closeBulkUploadModal = () => {
+    setShowBulkUploadModal(false)
+    setSelectedFile(null)
+    setUploadResult(null)
   }
 
   // Single user delete functions
@@ -294,7 +341,6 @@ export default function AdminUsers() {
   const resetForm = () => {
     setFormData({
       email: '',
-      password: '',
       firstName: '',
       lastName: '',
       role: 'STUDENT'
@@ -307,7 +353,6 @@ export default function AdminUsers() {
       setSelectedUser(user)
       setFormData({
         email: user.email,
-        password: '',
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role
@@ -398,6 +443,14 @@ export default function AdminUsers() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button 
+            variant="outline" 
+            onClick={() => setShowBulkUploadModal(true)}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Bulk Upload
+          </Button>
 
           <Button onClick={() => openModal()}>
             <Plus className="h-4 w-4 mr-2" />
@@ -590,7 +643,7 @@ export default function AdminUsers() {
               {selectedUser ? 'Edit User' : 'Add New User'}
             </DialogTitle>
             <DialogDescription>
-              {selectedUser ? 'Update user information' : 'Create a new user account'}
+              {selectedUser ? 'Update user information' : 'Create a new user account. Password will be auto-generated and sent via email.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -627,19 +680,6 @@ export default function AdminUsers() {
               />
             </div>
 
-            {!selectedUser && (
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  required
-                />
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="role">Role *</Label>
               <select
@@ -654,6 +694,14 @@ export default function AdminUsers() {
                 <option value="ADMIN">Admin</option>
               </select>
             </div>
+
+            {!selectedUser && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Password:</strong> Will be auto-generated as "Iam{formData.firstName || '[FirstName]'}123!@#" and sent to the user's email.
+                </p>
+              </div>
+            )}
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button
@@ -679,6 +727,139 @@ export default function AdminUsers() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Upload Modal */}
+      <Dialog open={showBulkUploadModal} onOpenChange={closeBulkUploadModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Bulk Upload Users</DialogTitle>
+            <DialogDescription>
+              Upload multiple users at once using an Excel file. Passwords will be auto-generated and sent via email.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* File Format Section */}
+            <div className="bg-gray-50 rounded-lg p-6">             
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg text-center font-semibold text-gray-900 mb-2">File Format</h3>
+                  <h4 className="font-medium text-gray-900 mb-3">Required Columns (in order):</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Column A:</span>
+                      <span className="font-medium text-gray-900">First Name</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Column B:</span>
+                      <span className="font-medium text-gray-900">Last Name</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Column C:</span>
+                      <span className="font-medium text-gray-900">Email</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Column D:</span>
+                      <span className="font-medium text-gray-900">Role</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-orange-50 rounded-lg p-4">
+                  <h4 className="font-medium text-orange-800 mb-2">Important Notes:</h4>
+                  <ul className="text-sm text-orange-700 space-y-1">
+                    <li>• First row should contain headers</li>
+                    <li>• All fields are required</li>
+                    <li>• File must be in .xlsx format</li>
+                    <li>• Use the template for best results</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+
+            {/* File Upload Section */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900">Upload Excel File</h4>
+              <FileUpload
+                onFileSelect={handleFileSelect}
+                accept=".xlsx,.xls"
+                maxSize={5}
+                disabled={isUploading}
+              />
+              
+              {selectedFile && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Password Format:</strong> Passwords will be auto-generated as "Iam[FirstName]123!@#" for each user and sent via email.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Upload Result */}
+            {uploadResult && (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-medium text-green-800">Upload Successful!</h4>
+                  <p className="text-sm text-green-700 mt-1">
+                    {uploadResult.message}
+                  </p>
+                  <div className="mt-2 text-sm text-green-700">
+                    <p>• Users created: {uploadResult.users.length}</p>
+                    <p>• Emails sent: {uploadResult.emailResults.successful}</p>
+                    {uploadResult.emailResults.failed > 0 && (
+                      <p className="text-orange-700">• Email failures: {uploadResult.emailResults.failed}</p>
+                    )}
+                  </div>
+                </div>
+
+                {uploadResult.emailResults.failedEmails.length > 0 && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <h4 className="font-medium text-orange-800">Email Delivery Issues</h4>
+                    <div className="mt-2 space-y-1">
+                      {uploadResult.emailResults.failedEmails.map((failure, index) => (
+                        <p key={index} className="text-sm text-orange-700">
+                          • {failure.email}: {failure.error}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={closeBulkUploadModal}
+                disabled={isUploading}
+              >
+                {uploadResult ? 'Close' : 'Cancel'}
+              </Button>
+              {!uploadResult && (
+                <Button
+                  onClick={handleBulkUpload}
+                  disabled={!selectedFile || isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Users
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
