@@ -70,9 +70,9 @@ export default function AdminEvents() {
         fnStartTime: '08:45',
         fnEndTime: '09:15',
         anStartTime: '14:00',
-        anEndTime: '14:30'
+        anEndTime: '17:30'
       })
-    }
+    }08  
 
     setFormData(prev => ({ ...prev, eventDays: days }))
   }
