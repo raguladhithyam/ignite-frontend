@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { notificationsApi } from '@/api/notifications'
 import { Notification } from '@/types'
-import { Search, Plus, Trash2, Bell } from 'lucide-react'
+import { Search, Plus, Trash2, Bell, Loader2 } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
@@ -26,6 +26,8 @@ export default function AdminNotifications() {
   const [showModal, setShowModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null)
+  const [creatingNotification, setCreatingNotification] = useState(false)
+  const [deletingNotification, setDeletingNotification] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -62,6 +64,7 @@ export default function AdminNotifications() {
     }
 
     try {
+      setCreatingNotification(true)
       await notificationsApi.createNotification({
         title: formData.title,
         message: formData.message,
@@ -77,6 +80,8 @@ export default function AdminNotifications() {
       resetForm()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create notification')
+    } finally {
+      setCreatingNotification(false)
     }
   }
 
@@ -89,20 +94,26 @@ export default function AdminNotifications() {
     if (!notificationToDelete) return
 
     try {
+      setDeletingNotification(true)
       await notificationsApi.deleteNotification(notificationToDelete)
       toast.success('Notification deleted successfully', { duration: 2000 })
       fetchNotifications()
+      // Only close dialog and reset state after successful deletion
+      setShowDeleteDialog(false)
+      setNotificationToDelete(null)
     } catch (error) {
       toast.error('Failed to delete notification')
     } finally {
-      setShowDeleteDialog(false)
-      setNotificationToDelete(null)
+      setDeletingNotification(false)
     }
   }
 
   const handleDeleteCancel = () => {
-    setShowDeleteDialog(false)
-    setNotificationToDelete(null)
+    // Only allow canceling if not currently deleting
+    if (!deletingNotification) {
+      setShowDeleteDialog(false)
+      setNotificationToDelete(null)
+    }
   }
 
   const resetForm = () => {
@@ -219,8 +230,13 @@ export default function AdminNotifications() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteClick(notification.id)}
+                        disabled={deletingNotification && notificationToDelete === notification.id}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deletingNotification && notificationToDelete === notification.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -264,7 +280,7 @@ export default function AdminNotifications() {
       </Card>
 
       {/* Create Notification Modal */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <Dialog open={showModal} onOpenChange={(open) => !creatingNotification && setShowModal(open)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Notification</DialogTitle>
@@ -282,6 +298,7 @@ export default function AdminNotifications() {
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Notification title"
                 required
+                disabled={creatingNotification}
               />
             </div>
 
@@ -292,8 +309,9 @@ export default function AdminNotifications() {
                 value={formData.message}
                 onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                 placeholder="Notification message"
-                className="w-full h-24 px-3 py-2 rounded-md border border-input bg-background text-sm"
+                className="w-full h-24 px-3 py-2 rounded-md border border-input bg-background text-sm disabled:opacity-50"
                 required
+                disabled={creatingNotification}
               />
             </div>
 
@@ -304,7 +322,8 @@ export default function AdminNotifications() {
                   id="type"
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-50"
+                  disabled={creatingNotification}
                 >
                   <option value="INFO">Info</option>
                   <option value="SUCCESS">Success</option>
@@ -319,8 +338,8 @@ export default function AdminNotifications() {
                   id="targetRole"
                   value={formData.targetRole}
                   onChange={(e) => setFormData(prev => ({ ...prev, targetRole: e.target.value as any }))}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  disabled={formData.isGlobal}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-50"
+                  disabled={formData.isGlobal || creatingNotification}
                 >
                   <option value="">All Roles</option>
                   <option value="ADMIN">Admin</option>
@@ -340,7 +359,8 @@ export default function AdminNotifications() {
                   isGlobal: e.target.checked,
                   targetRole: e.target.checked ? '' : prev.targetRole
                 }))}
-                className="rounded border-gray-300"
+                className="rounded border-gray-300 disabled:opacity-50"
+                disabled={creatingNotification}
               />
               <Label htmlFor="isGlobal" className="text-sm">
                 Send to all users (Global notification)
@@ -354,6 +374,7 @@ export default function AdminNotifications() {
                 type="datetime-local"
                 value={formData.expiresAt}
                 onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                disabled={creatingNotification}
               />
             </div>
 
@@ -361,11 +382,22 @@ export default function AdminNotifications() {
               <Button
                 variant="outline"
                 onClick={() => setShowModal(false)}
+                disabled={creatingNotification}
               >
                 Cancel
               </Button>
-              <Button onClick={handleSubmit}>
-                Create Notification
+              <Button 
+                onClick={handleSubmit}
+                disabled={creatingNotification}
+              >
+                {creatingNotification ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Notification'
+                )}
               </Button>
             </div>
           </div>
@@ -373,7 +405,7 @@ export default function AdminNotifications() {
       </Dialog>
 
       {/* Delete Confirmation AlertDialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showDeleteDialog} onOpenChange={(open) => !deletingNotification && setShowDeleteDialog(open)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -382,8 +414,25 @@ export default function AdminNotifications() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDeleteCancel}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+            <AlertDialogCancel 
+              onClick={handleDeleteCancel}
+              disabled={deletingNotification}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              disabled={deletingNotification}
+            >
+              {deletingNotification ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

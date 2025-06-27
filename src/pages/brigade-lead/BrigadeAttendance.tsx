@@ -6,10 +6,10 @@ import { attendanceApi } from '@/api/attendance'
 import { eventsApi } from '@/api/events'
 import { studentsApi } from '@/api/students'
 import { AttendanceRecord, Event, EventDay, Student } from '@/types'
-import { UserCheck, Clock, Users, Calendar, CheckCircle } from 'lucide-react'
+import { Calendar, CheckCircle, Loader2 } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
-import { formatDateTime, formatTime, getSessionStatus } from '@/lib/utils'
+import { formatDateTime, getSessionStatus } from '@/lib/utils'
 
 export default function BrigadeAttendance() {
   const [currentEvent, setCurrentEvent] = useState<{ event: Event; currentDay: EventDay | null } | null>(null)
@@ -19,6 +19,7 @@ export default function BrigadeAttendance() {
   const [markingAttendance, setMarkingAttendance] = useState(false)
   const [selectedSession, setSelectedSession] = useState<'FN' | 'AN'>('FN')
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
+  const [markingIndividual, setMarkingIndividual] = useState<string | null>(null)
 
   useEffect(() => {
     fetchCurrentEvent()
@@ -74,6 +75,7 @@ export default function BrigadeAttendance() {
     }
 
     try {
+      setMarkingIndividual(studentId)
       await attendanceApi.markAttendance({
         studentId,
         eventDayId: currentEvent.currentDay.id,
@@ -85,6 +87,8 @@ export default function BrigadeAttendance() {
       fetchAttendanceRecords()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark attendance')
+    } finally {
+      setMarkingIndividual(null)
     }
   }
 
@@ -231,7 +235,14 @@ export default function BrigadeAttendance() {
                   onClick={() => handleBulkMarkAttendance('PRESENT')}
                   disabled={markingAttendance}
                 >
-                  Mark Present
+                  {markingAttendance ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Marking...
+                    </>
+                  ) : (
+                    'Mark Present'
+                  )}
                 </Button>
                 <Button
                   size="sm"
@@ -239,12 +250,20 @@ export default function BrigadeAttendance() {
                   onClick={() => handleBulkMarkAttendance('ABSENT')}
                   disabled={markingAttendance}
                 >
-                  Mark Absent
+                  {markingAttendance ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Marking...
+                    </>
+                  ) : (
+                    'Mark Absent'
+                  )}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={clearSelection}
+                  disabled={markingAttendance}
                 >
                   Clear
                 </Button>
@@ -278,6 +297,7 @@ export default function BrigadeAttendance() {
             {students.map((student) => {
               const attendanceStatus = getStudentAttendanceStatus(student.id)
               const isSelected = selectedStudents.has(student.id)
+              const isMarkingThisStudent = markingIndividual === student.id
               
               return (
                 <div
@@ -292,7 +312,7 @@ export default function BrigadeAttendance() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleStudentSelection(student.id)}
-                        disabled={!!attendanceStatus}
+                        disabled={!!attendanceStatus || isMarkingThisStudent}
                         className="rounded border-gray-300"
                       />
                       <div>
@@ -320,23 +340,49 @@ export default function BrigadeAttendance() {
                           <Button
                             size="sm"
                             onClick={() => handleMarkAttendance(student.id, 'PRESENT')}
+                            disabled={isMarkingThisStudent}
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Present
+                            {isMarkingThisStudent ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Marking...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Present
+                              </>
+                            )}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleMarkAttendance(student.id, 'ABSENT')}
+                            disabled={isMarkingThisStudent}
                           >
-                            Absent
+                            {isMarkingThisStudent ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Marking...
+                              </>
+                            ) : (
+                              'Absent'
+                            )}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleMarkAttendance(student.id, 'LATE')}
+                            disabled={isMarkingThisStudent}
                           >
-                            Late
+                            {isMarkingThisStudent ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Marking...
+                              </>
+                            ) : (
+                              'Late'
+                            )}
                           </Button>
                         </div>
                       )}

@@ -7,13 +7,11 @@ import { studentsApi } from '@/api/students'
 import { brigadesApi } from '@/api/brigades'
 import { uploadsApi } from '@/api/uploads'
 import { Student, Brigade } from '@/types'
-import { Search, Plus, Upload, Download, Edit, Trash2 } from 'lucide-react'
+import { Search, Plus, Upload, Download, Edit, Trash2, Loader2 } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
-// import { formatDate } from '@/lib/utils'
 import StudentModal from '@/components/modals/StudentModal'
 import UploadStudentsModal from '@/components/modals/UploadStudentsModal'
-// import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +38,7 @@ export default function AdminStudents() {
   const [showStudentModal, setShowStudentModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -102,18 +100,6 @@ export default function AdminStudents() {
       console.error('Failed to fetch brigades:', error)
     }
   }
-
-  // const handleDeleteStudent = async (id: string) => {
-  //   if (!confirm('Are you sure you want to delete this student?')) return
-
-  //   try {
-  //     await studentsApi.deleteStudent(id)
-  //     toast.success('Student deleted successfully')
-  //     fetchStudents()
-  //   } catch (error) {
-  //     toast.error('Failed to delete student')
-  //   }
-  // }
 
   const handleDownloadTemplate = async () => {
     try {
@@ -339,6 +325,7 @@ export default function AdminStudents() {
         brigades={brigades}
         onSuccess={handleUploadSuccess}
       />
+      
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -357,7 +344,14 @@ export default function AdminStudents() {
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -22,6 +22,8 @@ export default function AdminBrigades() {
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [brigadeToDelete, setBrigadeToDelete] = useState<string | null>(null)
   const [selectedBrigade, setSelectedBrigade] = useState<Brigade | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     leaderId: ''
@@ -62,6 +64,7 @@ export default function AdminBrigades() {
     }
 
     try {
+      setSubmitting(true)
       if (selectedBrigade) {
         await brigadesApi.updateBrigade(selectedBrigade.id, formData)
         toast.success('Brigade updated successfully', { duration: 2000 })
@@ -75,6 +78,8 @@ export default function AdminBrigades() {
       resetForm()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save brigade')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -87,12 +92,14 @@ export default function AdminBrigades() {
     if (!brigadeToDelete) return
 
     try {
+      setDeleting(true)
       await brigadesApi.deleteBrigade(brigadeToDelete)
       toast.success('Brigade deleted successfully', { duration: 2000 })
       fetchBrigades()
     } catch (error) {
       toast.error('Failed to delete brigade')
     } finally {
+      setDeleting(false)
       setShowDeleteAlert(false)
       setBrigadeToDelete(null)
     }
@@ -231,6 +238,7 @@ export default function AdminBrigades() {
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Brigade Alpha"
                 required
+                disabled={submitting}
               />
             </div>
 
@@ -240,7 +248,8 @@ export default function AdminBrigades() {
                 id="leaderId"
                 value={formData.leaderId}
                 onChange={(e) => setFormData(prev => ({ ...prev, leaderId: e.target.value }))}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm disabled:opacity-50"
+                disabled={submitting}
               >
                 <option value="">Select Leader</option>
                 {brigadeLeads.map((leader) => (
@@ -256,11 +265,19 @@ export default function AdminBrigades() {
                 type="button"
                 variant="outline"
                 onClick={() => setShowModal(false)}
+                disabled={submitting}
               >
                 Cancel
               </Button>
-              <Button type="submit">
-                {selectedBrigade ? 'Update' : 'Create'}
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <LoadingSpinner className="h-4 w-4 mr-2" />
+                    {selectedBrigade ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  selectedBrigade ? 'Update' : 'Create'
+                )}
               </Button>
             </div>
           </form>
@@ -277,8 +294,19 @@ export default function AdminBrigades() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDeleteCancel}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+            <AlertDialogCancel onClick={handleDeleteCancel} disabled={deleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={deleting}>
+              {deleting ? (
+                <>
+                  <LoadingSpinner className="h-4 w-4 mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

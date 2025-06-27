@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { eventsApi } from '@/api/events'
 import { Event } from '@/types'
-import { Search, Plus, Edit, Trash2, Calendar, Clock } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Calendar, Clock, X, Settings } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import { formatDate, formatTime } from '@/lib/utils'
@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label'
 
 interface EventDayForm {
+  id?: string
   date: string
   fnEnabled: boolean
   anEnabled: boolean
@@ -29,8 +30,12 @@ export default function AdminEvents() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showEventDaysModal, setShowEventDaysModal] = useState(false)
   const [eventToDelete, setEventToDelete] = useState<string | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [selectedEventForDays, setSelectedEventForDays] = useState<Event | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -77,8 +82,23 @@ export default function AdminEvents() {
     setFormData(prev => ({ ...prev, eventDays: days }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const removeEventDay = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      eventDays: prev.eventDays.filter((_, i) => i !== index)
+    }))
+  }
+
+  const updateEventDay = (index: number, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      eventDays: prev.eventDays.map((day, i) => 
+        i === index ? { ...day, [field]: value } : day
+      )
+    }))
+  }
+
+  const handleSubmit = async () => {
     
     if (!formData.name || !formData.startDate || !formData.endDate) {
       toast.error('Please fill in all required fields')
@@ -91,6 +111,7 @@ export default function AdminEvents() {
     }
 
     try {
+      setSubmitting(true)
       if (selectedEvent) {
         await eventsApi.updateEvent(selectedEvent.id, {
           name: formData.name,
@@ -109,6 +130,8 @@ export default function AdminEvents() {
       resetForm()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save event')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -121,15 +144,17 @@ export default function AdminEvents() {
     if (!eventToDelete) return
 
     try {
+      setDeleting(true)
       await eventsApi.deleteEvent(eventToDelete)
       toast.success('Event deleted successfully', { duration: 2000 })
       fetchEvents()
     } catch (error) {
       toast.error('Failed to delete event')
+    } finally {
+      setDeleting(false)
+      setShowDeleteDialog(false)
+      setEventToDelete(null)
     }
-
-    setShowDeleteDialog(false)
-    setEventToDelete(null)
   }
 
   const handleDeleteCancel = () => {
@@ -157,6 +182,7 @@ export default function AdminEvents() {
         startDate: event.startDate.split('T')[0],
         endDate: event.endDate.split('T')[0],
         eventDays: event.eventDays.map(day => ({
+          id: day.id,
           date: day.date.split('T')[0],
           fnEnabled: day.fnEnabled,
           anEnabled: day.anEnabled,
@@ -170,6 +196,30 @@ export default function AdminEvents() {
       resetForm()
     }
     setShowModal(true)
+  }
+
+  const openEventDaysModal = async (event: Event) => {
+    try {
+      const eventWithDays = await eventsApi.getEvent(event.id)
+      setSelectedEventForDays(eventWithDays)
+      setShowEventDaysModal(true)
+    } catch (error) {
+      toast.error('Failed to load event details')
+    }
+  }
+
+  const updateEventDayInModal = async (dayId: string, updates: Partial<EventDayForm>) => {
+    try {
+      await eventsApi.updateEventDay(dayId, updates)
+      toast.success('Event day updated successfully')
+      
+      // Refresh the event data
+      const updatedEvent = await eventsApi.getEvent(selectedEventForDays!.id)
+      setSelectedEventForDays(updatedEvent)
+      fetchEvents()
+    } catch (error) {
+      toast.error('Failed to update event day')
+    }
   }
 
   const filteredEvents = events.filter(event =>
@@ -209,6 +259,24 @@ export default function AdminEvents() {
         <div className="flex justify-center py-8">
           <LoadingSpinner />
         </div>
+      ) : filteredEvents.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="flex flex-col items-center space-y-4">
+              <Calendar className="h-12 w-12 text-gray-400" />
+              <h3 className="text-lg font-medium text-gray-900">No events found</h3>
+              <p className="text-gray-600">
+                {searchTerm ? 'No events match your search criteria.' : 'Get started by creating your first event.'}
+              </p>
+              {!searchTerm && (
+                <Button onClick={() => openModal()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Event
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
           {filteredEvents.map((event) => (
@@ -236,6 +304,14 @@ export default function AdminEvents() {
                       {event.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEventDaysModal(event)}
+                        title="Manage Event Days"
+                      >
+                        <Settings className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -281,7 +357,7 @@ export default function AdminEvents() {
 
       {/* Event Form Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedEvent ? 'Edit Event' : 'Add New Event'}
@@ -291,7 +367,7 @@ export default function AdminEvents() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Event Name *</Label>
               <Input
@@ -338,19 +414,117 @@ export default function AdminEvents() {
             </div>
 
             {!selectedEvent && (
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generateEventDays}
-                  disabled={!formData.startDate || !formData.endDate}
-                >
-                  Generate Event Days
-                </Button>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={generateEventDays}
+                    disabled={!formData.startDate || !formData.endDate}
+                  >
+                    Generate Event Days
+                  </Button>
+                  {formData.eventDays.length > 0 && (
+                    <p className="text-sm text-gray-600">
+                      {formData.eventDays.length} days generated
+                    </p>
+                  )}
+                </div>
+
+                {/* Generated Event Days List */}
                 {formData.eventDays.length > 0 && (
-                  <p className="text-sm text-gray-600">
-                    {formData.eventDays.length} days generated
-                  </p>
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Event Days:</h4>
+                    <div className="max-h-64 overflow-y-auto space-y-2">
+                      {formData.eventDays.map((day, index) => (
+                        <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="font-medium">{formatDate(day.date)}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeEventDay(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* FN Session */}
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`fn-${index}`}
+                                  checked={day.fnEnabled}
+                                  onChange={(e) => updateEventDay(index, 'fnEnabled', e.target.checked)}
+                                />
+                                <Label htmlFor={`fn-${index}`} className="text-sm font-medium">FN Session</Label>
+                              </div>
+                              {day.fnEnabled && (
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <Label className="text-xs">Start</Label>
+                                    <Input
+                                      type="time"
+                                      value={day.fnStartTime}
+                                      onChange={(e) => updateEventDay(index, 'fnStartTime', e.target.value)}
+                                      className="text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">End</Label>
+                                    <Input
+                                      type="time"
+                                      value={day.fnEndTime}
+                                      onChange={(e) => updateEventDay(index, 'fnEndTime', e.target.value)}
+                                      className="text-sm"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* AN Session */}
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`an-${index}`}
+                                  checked={day.anEnabled}
+                                  onChange={(e) => updateEventDay(index, 'anEnabled', e.target.checked)}
+                                />
+                                <Label htmlFor={`an-${index}`} className="text-sm font-medium">AN Session</Label>
+                              </div>
+                              {day.anEnabled && (
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <Label className="text-xs">Start</Label>
+                                    <Input
+                                      type="time"
+                                      value={day.anStartTime}
+                                      onChange={(e) => updateEventDay(index, 'anStartTime', e.target.value)}
+                                      className="text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">End</Label>
+                                    <Input
+                                      type="time"
+                                      value={day.anEndTime}
+                                      onChange={(e) => updateEventDay(index, 'anEndTime', e.target.value)}
+                                      className="text-sm"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -360,14 +534,118 @@ export default function AdminEvents() {
                 type="button"
                 variant="outline"
                 onClick={() => setShowModal(false)}
+                disabled={submitting}
               >
                 Cancel
               </Button>
-              <Button type="submit">
-                {selectedEvent ? 'Update' : 'Create'}
+              <Button type="button" disabled={submitting} onClick={handleSubmit}>
+                {submitting ? (
+                  <>
+                    <LoadingSpinner />
+                    {selectedEvent ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  selectedEvent ? 'Update' : 'Create'
+                )}
               </Button>
             </div>
-          </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Event Days Management Modal */}
+      <Dialog open={showEventDaysModal} onOpenChange={setShowEventDaysModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Event Days - {selectedEventForDays?.name}</DialogTitle>
+            <DialogDescription>
+              Edit session timings and availability for each day
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedEventForDays && (
+            <div className="space-y-4">
+              {selectedEventForDays.eventDays.map((day) => (
+                <div key={day.id} className="border rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-medium mb-3">{formatDate(day.date)}</h4>
+                  
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* FN Session */}
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`fn-${day.id}`}
+                          checked={day.fnEnabled}
+                          onChange={(e) => updateEventDayInModal(day.id, { fnEnabled: e.target.checked })}
+                        />
+                        <Label htmlFor={`fn-${day.id}`} className="font-medium">FN Session</Label>
+                      </div>
+                      {day.fnEnabled && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-sm">Start Time</Label>
+                            <Input
+                              type="time"
+                              value={day.fnStartTime}
+                              onChange={(e) => updateEventDayInModal(day.id, { fnStartTime: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm">End Time</Label>
+                            <Input
+                              type="time"
+                              value={day.fnEndTime}
+                              onChange={(e) => updateEventDayInModal(day.id, { fnEndTime: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* AN Session */}
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`an-${day.id}`}
+                          checked={day.anEnabled}
+                          onChange={(e) => updateEventDayInModal(day.id, { anEnabled: e.target.checked })}
+                        />
+                        <Label htmlFor={`an-${day.id}`} className="font-medium">AN Session</Label>
+                      </div>
+                      {day.anEnabled && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-sm">Start Time</Label>
+                            <Input
+                              type="time"
+                              value={day.anStartTime}
+                              onChange={(e) => updateEventDayInModal(day.id, { anStartTime: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm">End Time</Label>
+                            <Input
+                              type="time"
+                              value={day.anEndTime}
+                              onChange={(e) => updateEventDayInModal(day.id, { anEndTime: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => setShowEventDaysModal(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -382,8 +660,19 @@ export default function AdminEvents() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDeleteCancel}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+            <AlertDialogCancel onClick={handleDeleteCancel} disabled={deleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={deleting}>
+              {deleting ? (
+                <>
+                  <LoadingSpinner />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

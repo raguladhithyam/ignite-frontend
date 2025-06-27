@@ -43,6 +43,8 @@ export default function AdminLeadAttendance() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isMarkingAttendance, setIsMarkingAttendance] = useState(false)
+  const [isBulkMarkingAttendance, setIsBulkMarkingAttendance] = useState(false)
 
   const [markFormData, setMarkFormData] = useState({
     userId: '',
@@ -163,6 +165,7 @@ export default function AdminLeadAttendance() {
     }
 
     try {
+      setIsMarkingAttendance(true)
       await leadAttendanceApi.markLeadAttendance(markFormData)
       toast.success('Attendance marked successfully', { duration: 2000 })
       setShowMarkModal(false)
@@ -176,6 +179,8 @@ export default function AdminLeadAttendance() {
       fetchSummary()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark attendance')
+    } finally {
+      setIsMarkingAttendance(false)
     }
   }
 
@@ -188,6 +193,7 @@ export default function AdminLeadAttendance() {
     }
 
     try {
+      setIsBulkMarkingAttendance(true)
       await leadAttendanceApi.bulkMarkLeadAttendance({
         userIds: Array.from(selectedLeads),
         date: bulkFormData.date,
@@ -206,6 +212,8 @@ export default function AdminLeadAttendance() {
       fetchSummary()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark bulk attendance')
+    } finally {
+      setIsBulkMarkingAttendance(false)
     }
   }
 
@@ -314,6 +322,7 @@ export default function AdminLeadAttendance() {
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
               >
+                <option value="">All Statuses</option>
                 <option value="PRESENT">Present</option>
                 <option value="ABSENT">Absent</option>
                 <option value="LATE">Late</option>
@@ -532,6 +541,7 @@ export default function AdminLeadAttendance() {
                 onChange={(e) => setMarkFormData(prev => ({ ...prev, userId: e.target.value }))}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
                 required
+                disabled={isMarkingAttendance}
               >
                 <option value="">Select Brigade Lead</option>
                 {brigadeLeads.map((lead) => (
@@ -549,6 +559,7 @@ export default function AdminLeadAttendance() {
                 type="date"
                 value={markFormData.date}
                 onChange={(e) => setMarkFormData(prev => ({ ...prev, date: e.target.value }))}
+                disabled={isMarkingAttendance}
                 required
               />
             </div>
@@ -560,6 +571,7 @@ export default function AdminLeadAttendance() {
                 value={markFormData.status}
                 onChange={(e) => setMarkFormData(prev => ({ ...prev, status: e.target.value as any }))}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                disabled={isMarkingAttendance}
                 required
               >
                 <option value="PRESENT">Present</option>
@@ -576,6 +588,7 @@ export default function AdminLeadAttendance() {
                 onChange={(e) => setMarkFormData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Optional notes..."
                 className="w-full h-20 px-3 py-2 rounded-md border border-input bg-background text-sm"
+                disabled={isMarkingAttendance}
               />
             </div>
 
@@ -584,11 +597,19 @@ export default function AdminLeadAttendance() {
                 type="button"
                 variant="outline"
                 onClick={() => setShowMarkModal(false)}
+                disabled={isMarkingAttendance}
               >
                 Cancel
               </Button>
-              <Button type="submit">
-                Mark Attendance
+              <Button type="submit" disabled={isMarkingAttendance}>
+                {isMarkingAttendance ? (
+                  <>
+                    <LoadingSpinner className="h-4 w-4 mr-2" />
+                    Marking...
+                  </>
+                ) : (
+                  'Mark Attendance'
+                )}
               </Button>
             </div>
           </form>
@@ -616,6 +637,7 @@ export default function AdminLeadAttendance() {
                     variant="outline"
                     size="sm"
                     onClick={selectAllLeads}
+                    disabled={isBulkMarkingAttendance}
                   >
                     Select All
                   </Button>
@@ -624,6 +646,7 @@ export default function AdminLeadAttendance() {
                     variant="outline"
                     size="sm"
                     onClick={clearSelection}
+                    disabled={isBulkMarkingAttendance}
                   >
                     Clear
                   </Button>
@@ -638,6 +661,7 @@ export default function AdminLeadAttendance() {
                       checked={selectedLeads.has(lead.id)}
                       onChange={() => toggleLeadSelection(lead.id)}
                       className="rounded border-gray-300"
+                      disabled={isBulkMarkingAttendance}
                     />
                     <label htmlFor={`lead-${lead.id}`} className="text-sm flex-1">
                       {lead.firstName} {lead.lastName} - {lead.brigadeLeadBrigades.map(b => b.name).join(', ')}
@@ -660,6 +684,7 @@ export default function AdminLeadAttendance() {
                   type="date"
                   value={bulkFormData.date}
                   onChange={(e) => setBulkFormData(prev => ({ ...prev, date: e.target.value }))}
+                  disabled={isBulkMarkingAttendance}
                   required
                 />
               </div>
@@ -671,6 +696,7 @@ export default function AdminLeadAttendance() {
                   value={bulkFormData.status}
                   onChange={(e) => setBulkFormData(prev => ({ ...prev, status: e.target.value as any }))}
                   className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                  disabled={isBulkMarkingAttendance}
                   required
                 >
                   <option value="PRESENT">Present</option>
@@ -687,6 +713,7 @@ export default function AdminLeadAttendance() {
                   onChange={(e) => setBulkFormData(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Optional notes..."
                   className="w-full h-20 px-3 py-2 rounded-md border border-input bg-background text-sm"
+                  disabled={isBulkMarkingAttendance}
                 />
               </div>
 
@@ -695,11 +722,22 @@ export default function AdminLeadAttendance() {
                   type="button"
                   variant="outline"
                   onClick={() => setShowBulkModal(false)}
+                  disabled={isBulkMarkingAttendance}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={selectedLeads.size === 0}>
-                  Mark Attendance ({selectedLeads.size})
+                <Button 
+                  type="submit" 
+                  disabled={selectedLeads.size === 0 || isBulkMarkingAttendance}
+                >
+                  {isBulkMarkingAttendance ? (
+                    <>
+                      <LoadingSpinner className="h-4 w-4 mr-2" />
+                      Marking...
+                    </>
+                  ) : (
+                    `Mark Attendance (${selectedLeads.size})`
+                  )}
                 </Button>
               </div>
             </form>
