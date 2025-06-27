@@ -157,12 +157,12 @@ export default function LoginPage() {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-medium text-sm mb-2">Demo Credentials:</h3>
               <div className="text-xs text-gray-600 space-y-1">
                 <p><strong>Admin:</strong> admin@ignite.com / admin123</p>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>

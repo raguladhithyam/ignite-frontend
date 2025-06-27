@@ -24,7 +24,7 @@ const Checkbox = ({ checked, indeterminate, onCheckedChange, ...props }: {
 }
 import { usersApi } from '@/api/users'
 import { User } from '@/types'
-import { Search, Plus, Edit, Trash2, Key, Loader2, Users, UserX } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Key, Loader2, UserX } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
