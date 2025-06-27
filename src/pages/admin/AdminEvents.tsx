@@ -69,8 +69,8 @@ export default function AdminEvents() {
         anEnabled: true,
         fnStartTime: '08:45',
         fnEndTime: '09:15',
-        anStartTime: '15:30',
-        anEndTime: '16:00'
+        anStartTime: '16:00',
+        anEndTime: '16:30'
       })
     }
 
