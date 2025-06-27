@@ -5,11 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { studentsApi } from '@/api/students'
 import { brigadesApi } from '@/api/brigades'
-import { Student, Brigade, PaginatedResponse } from '@/types'
-import { Search, Plus, Edit, Eye } from 'lucide-react'
+import { Student, Brigade } from '@/types'
+import { Search } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
-import { formatDate } from '@/lib/utils'
 import StudentModal from '@/components/modals/StudentModal'
 
 export default function BrigadeStudents() {
@@ -72,10 +71,10 @@ export default function BrigadeStudents() {
           <h1 className="text-3xl font-bold text-gray-900">My Students</h1>
           <p className="text-gray-600 mt-2">Manage students in your brigades</p>
         </div>
-        <Button onClick={() => setShowStudentModal(true)}>
+        {/* <Button onClick={() => setShowStudentModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Student
-        </Button>
+        </Button> */}
       </div>
 
       {/* Filters */}
@@ -138,7 +137,7 @@ export default function BrigadeStudents() {
                     <th className="text-left py-3 px-4 font-medium">Email</th>
                     <th className="text-left py-3 px-4 font-medium">Brigade</th>
                     <th className="text-left py-3 px-4 font-medium">Status</th>
-                    <th className="text-left py-3 px-4 font-medium">Actions</th>
+                    {/* <th className="text-left py-3 px-4 font-medium">Actions</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -174,7 +173,7 @@ export default function BrigadeStudents() {
                           {student.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4">
+                      {/* <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
@@ -196,7 +195,7 @@ export default function BrigadeStudents() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </div>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>
