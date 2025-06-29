@@ -109,27 +109,6 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         <nav className="p-4 space-y-2">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href
-            const isLeadAttendance = item.href === '/admin/lead-attendance'
-            
-            if (isLeadAttendance) {
-              return (
-                <a
-                  key={item.name}
-                  href="https://leads-attendance.vercel.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    "text-gray-700 hover:bg-gray-100"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </a>
-              )
-            }
-            
             return (
               <Link
                 key={item.name}
