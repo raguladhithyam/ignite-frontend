@@ -75,10 +75,15 @@ const AdminLogs: React.FC = () => {
         page: currentPage
       })
       
-      setLogs(response.logs)
+      // Filter out logs containing "/api/logs" in the message
+      const filteredLogs = response.logs.filter(log => 
+        !log.message.includes('/api/logs')
+      )
+      
+      setLogs(filteredLogs)
       setCurrentPage(response.pagination.currentPage)
       setTotalPages(response.pagination.totalPages)
-      setTotalLogs(response.pagination.totalLogs)
+      setTotalLogs(filteredLogs.length) // Update total count to reflect filtered logs
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load logs')
     } finally {
@@ -109,18 +114,6 @@ const AdminLogs: React.FC = () => {
       logsApi.downloadLogsAsFile(blob, `logs-${timestamp}.json`)
     } catch (err) {
       setError('Failed to export logs')
-    }
-  }
-
-  const clearLogs = async () => {
-    if (window.confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
-      try {
-        await logsApi.clearLogs('all')
-        loadLogs()
-        loadInitialData()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to clear logs')
-      }
     }
   }
 
@@ -248,12 +241,6 @@ const AdminLogs: React.FC = () => {
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
               Export
-            </button>
-            <button
-              onClick={clearLogs}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-            >
-              Clear Logs
             </button>
           </div>
         </div>
