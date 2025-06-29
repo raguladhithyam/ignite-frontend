@@ -14,7 +14,8 @@ import {
   Shield,
   BookOpen,
   FileText,
-  ClipboardCheck
+  ClipboardCheck,
+  ScrollText
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -31,6 +32,7 @@ const adminNavItems = [
   { name: 'Events', href: '/admin/events', icon: Calendar },
   { name: 'Attendance', href: '/admin/attendance', icon: UserCheck },
   { name: 'Lead Attendance', href: '/admin/lead-attendance', icon: ClipboardCheck },
+  { name: 'Admin Logs', href: '/admin/logs', icon: ScrollText },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Notifications', href: '/admin/notifications', icon: Bell }
 ]
