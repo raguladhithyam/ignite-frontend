@@ -1,4 +1,4 @@
-import { Bell, Menu, User, LogOut, Settings } from 'lucide-react'
+import { Menu, User, LogOut, Settings, Clock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from './ui/button'
 import {
@@ -12,6 +12,7 @@ import {
 import { Avatar, AvatarFallback } from './ui/avatar'
 import { getInitials } from '@/lib/utils'
 import NotificationDropdown from './NotificationDropdown'
+import { useState, useEffect } from 'react'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -19,6 +20,27 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth()
+  const [currentTime, setCurrentTime] = useState('')
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      const istTime = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(now)
+      
+      setCurrentTime(istTime + ' IST')
+    }
+
+    updateTime() // Initial call
+    const interval = setInterval(updateTime, 1000) // Update every second
+
+    return () => clearInterval(interval)
+  }, [])
 
   if (!user) return null
 
@@ -46,6 +68,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Current Time Display */}
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border">
+            <Clock className="h-4 w-4" />
+            <span className="font-medium">{currentTime}</span>
+          </div>
+          
           <NotificationDropdown />
           
           <DropdownMenu>
