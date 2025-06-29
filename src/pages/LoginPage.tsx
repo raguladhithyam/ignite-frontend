@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { GraduationCap, Shield, Info, X } from 'lucide-react'
+import { GraduationCap, Shield, Info } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 export default function LoginPage() {
@@ -192,7 +192,6 @@ export default function LoginPage() {
               onClick={() => setShowInfoPopup(false)}
               className="flex items-center gap-2"
             >
-              <X className="h-4 w-4" />
               Got it
             </Button>
           </div>
