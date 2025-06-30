@@ -63,14 +63,13 @@ export default function LoginPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <div className="w-24 h-24 flex items-center justify-center mx-auto mb-4">
               <img 
                 src="/Ignite.png" 
                 alt="Ignite Logo" 
-                className="w-16 h-16 object-contain"
+                className="w-24 h-24 object-contain"
               />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Ignite</h1>
             <p className="text-gray-600 mt-2">Attendance Management System</p>
           </div>
 
