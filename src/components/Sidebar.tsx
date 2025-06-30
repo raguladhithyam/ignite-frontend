@@ -91,11 +91,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center justify-center flex-1">
-            <div className="w-12 h-12 flex items-center justify-center">
+            <div className="w-16 h-16 flex items-center justify-center">
               <img 
                 src="/Ignite.png" 
                 alt="Ignite Logo" 
-                className="w-12 h-12 object-contain"
+                className="w-16 h-16 object-contain"
               />
             </div>
           </div>
