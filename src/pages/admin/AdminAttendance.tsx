@@ -188,6 +188,11 @@ export default function AdminAttendance() {
       return 'OTHERS'
     }
     
+    // Group BCW and TCW under CW
+    if (deptCode === 'BCW' || deptCode === 'TCW') {
+      return 'CW'
+    }
+    
     return deptCode
   }
 
@@ -201,6 +206,15 @@ export default function AdminAttendance() {
         grouped[deptCode] = []
       }
       grouped[deptCode].push(student)
+    })
+    
+    // Sort students within each department by name in ascending order
+    Object.keys(grouped).forEach(deptCode => {
+      grouped[deptCode].sort((a, b) => {
+        const nameA = a['Student Name'].toLowerCase()
+        const nameB = b['Student Name'].toLowerCase()
+        return nameA.localeCompare(nameB)
+      })
     })
     
     return grouped
@@ -315,7 +329,7 @@ export default function AdminAttendance() {
       sortedDeptCodes.forEach(deptCode => {
         const deptStudents = groupedStudents[deptCode]
         
-        // Add serial numbers for department sheets
+        // Add serial numbers for department sheets AFTER sorting
         const deptStudentsWithSerial = deptStudents.map((student, index) => ({
           ...student,
           'S.No': index + 1
