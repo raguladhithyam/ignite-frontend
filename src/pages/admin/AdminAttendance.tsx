@@ -183,14 +183,14 @@ export default function AdminAttendance() {
     // Extract characters 3-5 (0-indexed: 2-4) for department code
     const deptCode = rollNumber.substring(2, 5)
     
-    // Check if third character (index 2) starts with 'B'
-    if (rollNumber.charAt(2) !== 'B') {
-      return 'OTHERS'
-    }
-    
-    // Group BCW and TCW under CW
+    // Group BCW and TCW under CW first (before other checks)
     if (deptCode === 'BCW' || deptCode === 'TCW') {
       return 'CW'
+    }
+    
+    // Check if third character (index 2) starts with 'B' for other departments
+    if (rollNumber.charAt(2) !== 'B') {
+      return 'OTHERS'
     }
     
     return deptCode
