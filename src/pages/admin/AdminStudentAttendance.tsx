@@ -29,7 +29,7 @@ export default function AdminStudentAttendance() {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 50
+    itemsPerPage: 500
   })
 
   useEffect(() => {
