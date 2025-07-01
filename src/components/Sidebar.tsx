@@ -32,7 +32,7 @@ const adminNavItems = [
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Events', href: '/admin/events', icon: Calendar },
   { name: 'Attendance', href: '/admin/attendance', icon: UserCheck },
-  { name: 'Mark Attendance', href: '/admin/student-attendance', icon: UserPlus },
+  { name: 'Student Attendance', href: '/admin/student-attendance', icon: UserPlus },
   { name: 'Lead Attendance', href: '/admin/lead-attendance', icon: ClipboardCheck },
   { name: 'Admin Logs', href: '/admin/logs', icon: ScrollText },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
