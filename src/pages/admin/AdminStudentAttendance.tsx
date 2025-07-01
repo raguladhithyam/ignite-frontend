@@ -10,7 +10,7 @@ import { AttendanceRecord, Event, EventDay, Student, Brigade } from '@/types'
 import { Calendar, CheckCircle, Loader2, Users, Clock, UserCheck, XCircle, AlertCircle, Search } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
-import { formatDateTime, getSessionStatus } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 
 export default function AdminStudentAttendance() {
@@ -181,14 +181,22 @@ export default function AdminStudentAttendance() {
     }
   }
 
-  // Calculate enhanced summary statistics (session-specific)
+  // Calculate enhanced summary statistics (session-specific) - SAME AS AdminAttendance
   const getEnhancedSummary = () => {
-    const totalStudents = students.length
-    const studentsWithAttendance = attendanceRecords.length
+    // Get all students that match current filters
+    const allFilteredStudents = students.length > 0 ? students : []
+    const totalStudents = pagination.totalItems || allFilteredStudents.length
+    
+    // Only count attendance records for the selected session
+    const sessionAttendanceRecords = attendanceRecords.filter(record => 
+      record.session === selectedSession
+    )
+    
+    const studentsWithAttendance = sessionAttendanceRecords.length
     const attendanceNotMarked = totalStudents - studentsWithAttendance
-    const presentCount = attendanceRecords.filter(r => r.status === 'PRESENT').length
-    const absentCount = attendanceRecords.filter(r => r.status === 'ABSENT').length
-    const lateCount = attendanceRecords.filter(r => r.status === 'LATE').length
+    const presentCount = sessionAttendanceRecords.filter(r => r.status === 'PRESENT').length
+    const absentCount = sessionAttendanceRecords.filter(r => r.status === 'ABSENT').length
+    const lateCount = sessionAttendanceRecords.filter(r => r.status === 'LATE').length
     const presentPercentage = totalStudents > 0 ? ((presentCount / totalStudents) * 100).toFixed(1) : '0'
 
     return {
@@ -218,9 +226,6 @@ export default function AdminStudentAttendance() {
       </div>
     )
   }
-
-  const sessionStatus = currentEvent.currentDay ? 
-    getSessionStatus(selectedSession, currentEvent.currentDay) : 'inactive'
 
   const enhancedSummary = getEnhancedSummary()
 
@@ -265,16 +270,14 @@ export default function AdminStudentAttendance() {
                 Afternoon ({currentEvent.currentDay?.anStartTime} - {currentEvent.currentDay?.anEndTime})
               </Button>
             </div>
-            <Badge variant={sessionStatus === 'active' ? 'default' : 'secondary'}>
-              {sessionStatus === 'active' ? 'Active' : 
-               sessionStatus === 'upcoming' ? 'Upcoming' : 
-               sessionStatus === 'ended' ? 'Ended' : 'Inactive'}
+            <Badge variant="default" className="bg-green-600">
+              Admin Access - No Time Restrictions
             </Badge>
           </div>
         </CardContent>
       </Card>
 
-      {/* Enhanced Summary Cards */}
+      {/* Enhanced Summary Cards - SAME AS AdminAttendance */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
           <CardContent className="p-6">
