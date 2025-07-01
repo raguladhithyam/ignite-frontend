@@ -176,6 +176,65 @@ export default function AdminAttendance() {
     }
   }
 
+  // Extract department code from roll number
+  const getDepartmentCode = (rollNumber: string) => {
+    if (!rollNumber || rollNumber.length < 5) return 'OTHERS'
+    
+    // Extract characters 3-5 (0-indexed: 2-4) for department code
+    const deptCode = rollNumber.substring(2, 5)
+    
+    // Check if third character (index 2) starts with 'B'
+    if (rollNumber.charAt(2) !== 'B') {
+      return 'OTHERS'
+    }
+    
+    return deptCode
+  }
+
+  // Group students by department
+  const groupStudentsByDepartment = (students: any[]) => {
+    const grouped: Record<string, any[]> = {}
+    
+    students.forEach((student) => {
+      const deptCode = getDepartmentCode(student['Roll Number'])
+      if (!grouped[deptCode]) {
+        grouped[deptCode] = []
+      }
+      grouped[deptCode].push(student)
+    })
+    
+    return grouped
+  }
+
+  // Create statistics data
+  const createStatsData = (groupedStudents: Record<string, any[]>) => {
+    const statsData = Object.entries(groupedStudents).map(([deptCode, students]) => {
+      const totalStudents = students.length
+      const presentCount = students.filter(s => s.Status === 'PRESENT').length
+      const absentCount = students.filter(s => s.Status === 'ABSENT').length
+      const lateCount = students.filter(s => s.Status === 'LATE').length
+      const notMarkedCount = students.filter(s => s.Status === 'Attendance Not Marked').length
+      const attendancePercentage = totalStudents > 0 ? ((presentCount / totalStudents) * 100).toFixed(1) : '0'
+      
+      return {
+        'Department Code': deptCode,
+        'Total Students': totalStudents,
+        'Present': presentCount,
+        'Absent': absentCount,
+        'Late': lateCount,
+        'Not Marked': notMarkedCount,
+        'Attendance %': attendancePercentage + '%'
+      }
+    })
+    
+    // Sort by department code, with OTHERS at the end
+    return statsData.sort((a, b) => {
+      if (a['Department Code'] === 'OTHERS') return 1
+      if (b['Department Code'] === 'OTHERS') return -1
+      return a['Department Code'].localeCompare(b['Department Code'])
+    })
+  }
+
   const exportToExcel = async () => {
     if (!selectedEventDay) {
       toast.error('Please select an event day to export')
@@ -192,10 +251,11 @@ export default function AdminAttendance() {
         return
       }
 
-      // Prepare data for Excel with all students (session-specific)
-      const excelData = filteredStudents.map(student => {
+      // Prepare data for Excel with all students (session-specific) with serial numbers
+      const excelData = filteredStudents.map((student, index) => {
         const attendanceRecord = getStudentAttendanceRecord(student.id)
         return {
+          'S.No': index + 1,
           'Student Name': `${student.firstName} ${student.lastName}`,
           'Roll Number': student.tempRollNumber,
           'Brigade': student.brigade?.name || 'No Brigade',
@@ -205,12 +265,18 @@ export default function AdminAttendance() {
         }
       })
 
-      // Create workbook and worksheet
-      const workbook = XLSX.utils.book_new()
-      const worksheet = XLSX.utils.json_to_sheet(excelData)
+      // Group students by department
+      const groupedStudents = groupStudentsByDepartment(excelData)
+      
+      // Create statistics data
+      const statsData = createStatsData(groupedStudents)
 
-      // Auto-size columns
+      // Create workbook
+      const workbook = XLSX.utils.book_new()
+
+      // Column widths configuration
       const columnWidths = [
+        { wch: 8 },  // S.No
         { wch: 25 }, // Student Name
         { wch: 15 }, // Roll Number
         { wch: 20 }, // Brigade
@@ -218,10 +284,50 @@ export default function AdminAttendance() {
         { wch: 20 }, // Status
         { wch: 20 }  // Marked At
       ]
-      worksheet['!cols'] = columnWidths
 
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Records')
+      // 1. Overall Data Sheet
+      const overallWorksheet = XLSX.utils.json_to_sheet(excelData)
+      overallWorksheet['!cols'] = columnWidths
+      XLSX.utils.book_append_sheet(workbook, overallWorksheet, 'Overall Data')
+
+      // 2. Stats Sheet
+      const statsWorksheet = XLSX.utils.json_to_sheet(statsData)
+      const statsColumnWidths = [
+        { wch: 18 }, // Department Code
+        { wch: 15 }, // Total Students
+        { wch: 12 }, // Present
+        { wch: 12 }, // Absent
+        { wch: 12 }, // Late
+        { wch: 15 }, // Not Marked
+        { wch: 15 }  // Attendance %
+      ]
+      statsWorksheet['!cols'] = statsColumnWidths
+      XLSX.utils.book_append_sheet(workbook, statsWorksheet, 'Stats')
+
+      // 3. Department-wise sheets
+      // Sort department codes for consistent ordering, with OTHERS at the end
+      const sortedDeptCodes = Object.keys(groupedStudents).sort((a, b) => {
+        if (a === 'OTHERS') return 1
+        if (b === 'OTHERS') return -1
+        return a.localeCompare(b)
+      })
+
+      sortedDeptCodes.forEach(deptCode => {
+        const deptStudents = groupedStudents[deptCode]
+        
+        // Add serial numbers for department sheets
+        const deptStudentsWithSerial = deptStudents.map((student, index) => ({
+          ...student,
+          'S.No': index + 1
+        }))
+        
+        const deptWorksheet = XLSX.utils.json_to_sheet(deptStudentsWithSerial)
+        deptWorksheet['!cols'] = columnWidths
+        
+        // Use department code as sheet name, with fallback for invalid characters
+        const sheetName = deptCode.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 31) // Excel sheet name limit
+        XLSX.utils.book_append_sheet(workbook, deptWorksheet, sheetName)
+      })
 
       // Generate filename
       const selectedEventData = getSelectedEvent()
@@ -239,7 +345,8 @@ export default function AdminAttendance() {
       // Save file
       XLSX.writeFile(workbook, filename)
       
-      toast.success(`Exported ${filteredStudents.length} student records to ${filename}`)
+      const totalSheets = 2 + Object.keys(groupedStudents).length // Overall + Stats + Department sheets
+      toast.success(`Exported ${filteredStudents.length} student records across ${totalSheets} sheets to ${filename}`)
     } catch (error) {
       console.error('Export failed:', error)
       toast.error('Failed to export data')
