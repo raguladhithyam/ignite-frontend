@@ -24,7 +24,7 @@ export default function AdminAttendance() {
   const [selectedEventDay, setSelectedEventDay] = useState('')
   const [selectedBrigade, setSelectedBrigade] = useState('')
   const [selectedSession, setSelectedSession] = useState<'FN' | 'AN' | ''>('')
-  const [summary, setSummary] = useState<any>(null)
+  const [setSummary] = useState<any>(null)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -340,7 +340,6 @@ export default function AdminAttendance() {
                 onChange={(e) => setSelectedSession(e.target.value as any)}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
               >
-                <option value="">All Sessions</option>
                 <option value="FN">Forenoon</option>
                 <option value="AN">Afternoon</option>
               </select>
