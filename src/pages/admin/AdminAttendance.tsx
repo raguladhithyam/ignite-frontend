@@ -23,7 +23,7 @@ export default function AdminAttendance() {
   const [selectedEvent, setSelectedEvent] = useState('')
   const [selectedEventDay, setSelectedEventDay] = useState('')
   const [selectedBrigade, setSelectedBrigade] = useState('')
-  const [selectedSession, setSelectedSession] = useState<'FN' | 'AN' | ''>('')
+  const [selectedSession, setSelectedSession] = useState<'FN' | 'AN'>('FN') // Default to FN
   const [setSummary] = useState<any>(null)
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -81,7 +81,7 @@ export default function AdminAttendance() {
       const response = await attendanceApi.getAttendanceRecords({
         eventDayId: selectedEventDay,
         brigadeId: selectedBrigade || undefined,
-        session: selectedSession || undefined,
+        session: selectedSession, // Always pass the selected session
         page: 1,
         limit: 10000 // Get all attendance records
       })
@@ -99,7 +99,7 @@ export default function AdminAttendance() {
     try {
       const data = await attendanceApi.getAttendanceSummary(
         selectedEventDay,
-        selectedSession || undefined
+        selectedSession // Always pass the selected session
       )
       setSummary(data)
     } catch (error) {
@@ -187,7 +187,7 @@ export default function AdminAttendance() {
           'Student Name': `${student.firstName} ${student.lastName}`,
           'Roll Number': student.tempRollNumber,
           'Brigade': student.brigade?.name || 'No Brigade',
-          'Session': selectedSession || 'All Sessions',
+          'Session': selectedSession,
           'Status': attendanceRecord ? attendanceRecord.status : 'Attendance Not Marked',
           'Marked At': attendanceRecord ? formatDateTime(attendanceRecord.markedAt) : 'Not Marked'
         }
@@ -219,7 +219,7 @@ export default function AdminAttendance() {
       const eventName = selectedEventData?.name || 'Event'
       const eventDate = selectedEventDayData ? new Date(selectedEventDayData.date).toISOString().split('T')[0] : 'Date'
       const brigadeName = selectedBrigadeData?.name || 'AllBrigades'
-      const sessionName = selectedSession || 'AllSessions'
+      const sessionName = selectedSession
       
       const filename = `${eventName}_${eventDate}_${brigadeName}_${sessionName}_Complete.xlsx`
         .replace(/[^a-zA-Z0-9_.-]/g, '_') // Replace invalid filename characters
@@ -337,7 +337,7 @@ export default function AdminAttendance() {
               <label className="text-sm font-medium">Session</label>
               <select
                 value={selectedSession}
-                onChange={(e) => setSelectedSession(e.target.value as any)}
+                onChange={(e) => setSelectedSession(e.target.value as 'FN' | 'AN')}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
               >
                 <option value="FN">Forenoon</option>
@@ -416,7 +416,7 @@ export default function AdminAttendance() {
       {/* Students with Attendance Records */}
       <Card>
         <CardHeader>
-          <CardTitle>All Students - Attendance Status</CardTitle>
+          <CardTitle>All Students - Attendance Status ({selectedSession} Session)</CardTitle>
           <CardDescription>
             {selectedEventDay ? `${enhancedSummary.totalStudents} total students (${enhancedSummary.studentsWithAttendance} marked, ${enhancedSummary.attendanceNotMarked} not marked)` : 'Select an event day to view records'}
           </CardDescription>
@@ -474,7 +474,9 @@ export default function AdminAttendance() {
                               {attendanceRecord.session}
                             </Badge>
                           ) : (
-                            <span className="text-gray-500">-</span>
+                            <Badge variant={getSessionBadgeVariant(selectedSession)}>
+                              {selectedSession}
+                            </Badge>
                           )}
                         </td>
                         <td className="py-3 px-4">
