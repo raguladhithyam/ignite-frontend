@@ -81,11 +81,15 @@ export default function AdminAttendance() {
       const response = await attendanceApi.getAttendanceRecords({
         eventDayId: selectedEventDay,
         brigadeId: selectedBrigade || undefined,
-        session: selectedSession, // Always pass the selected session
+        session: selectedSession, // Filter by selected session only
         page: 1,
-        limit: 10000 // Get all attendance records
+        limit: 10000 // Get all attendance records for the specific session
       })
-      setAttendanceRecords(response.data)
+      // Additional client-side filtering to ensure only the selected session records are shown
+      const filteredRecords = response.data.filter((record: AttendanceRecord) => 
+        record.session === selectedSession
+      )
+      setAttendanceRecords(filteredRecords)
     } catch (error) {
       toast.error('Failed to fetch attendance records')
     } finally {
@@ -99,7 +103,7 @@ export default function AdminAttendance() {
     try {
       const data = await attendanceApi.getAttendanceSummary(
         selectedEventDay,
-        selectedSession // Always pass the selected session
+        selectedSession // Pass the selected session to get session-specific summary
       )
       setSummary(data)
     } catch (error) {
@@ -137,20 +141,28 @@ export default function AdminAttendance() {
     return filteredStudents.slice(startIndex, endIndex)
   }
 
-  // Get attendance record for a specific student
+  // Get attendance record for a specific student (only for the selected session)
   const getStudentAttendanceRecord = (studentId: string) => {
-    return attendanceRecords.find(record => record.studentId === studentId)
+    return attendanceRecords.find(record => 
+      record.studentId === studentId && record.session === selectedSession
+    )
   }
 
-  // Calculate enhanced summary statistics
+  // Calculate enhanced summary statistics (session-specific)
   const getEnhancedSummary = () => {
     const filteredStudents = getFilteredStudents()
     const totalStudents = filteredStudents.length
-    const studentsWithAttendance = attendanceRecords.length
+    
+    // Only count attendance records for the selected session
+    const sessionAttendanceRecords = attendanceRecords.filter(record => 
+      record.session === selectedSession
+    )
+    
+    const studentsWithAttendance = sessionAttendanceRecords.length
     const attendanceNotMarked = totalStudents - studentsWithAttendance
-    const presentCount = attendanceRecords.filter(r => r.status === 'PRESENT').length
-    const absentCount = attendanceRecords.filter(r => r.status === 'ABSENT').length
-    const lateCount = attendanceRecords.filter(r => r.status === 'LATE').length
+    const presentCount = sessionAttendanceRecords.filter(r => r.status === 'PRESENT').length
+    const absentCount = sessionAttendanceRecords.filter(r => r.status === 'ABSENT').length
+    const lateCount = sessionAttendanceRecords.filter(r => r.status === 'LATE').length
     const presentPercentage = totalStudents > 0 ? ((presentCount / totalStudents) * 100).toFixed(1) : '0'
 
     return {
@@ -180,7 +192,7 @@ export default function AdminAttendance() {
         return
       }
 
-      // Prepare data for Excel with all students
+      // Prepare data for Excel with all students (session-specific)
       const excelData = filteredStudents.map(student => {
         const attendanceRecord = getStudentAttendanceRecord(student.id)
         return {
@@ -258,6 +270,13 @@ export default function AdminAttendance() {
     return session === 'FN' ? 'default' : 'secondary'
   }
 
+  // Handle event day selection and automatically set to FN session
+  const handleEventDayChange = (eventDayId: string) => {
+    setSelectedEventDay(eventDayId)
+    setSelectedSession('FN') // Always default to FN when selecting a new event day
+    setPagination(prev => ({ ...prev, currentPage: 1 })) // Reset to first page
+  }
+
   const enhancedSummary = getEnhancedSummary()
 
   return (
@@ -304,7 +323,7 @@ export default function AdminAttendance() {
               <label className="text-sm font-medium">Event Day</label>
               <select
                 value={selectedEventDay}
-                onChange={(e) => setSelectedEventDay(e.target.value)}
+                onChange={(e) => handleEventDayChange(e.target.value)}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
                 disabled={!selectedEvent}
               >
@@ -469,15 +488,9 @@ export default function AdminAttendance() {
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          {attendanceRecord ? (
-                            <Badge variant={getSessionBadgeVariant(attendanceRecord.session)}>
-                              {attendanceRecord.session}
-                            </Badge>
-                          ) : (
-                            <Badge variant={getSessionBadgeVariant(selectedSession)}>
-                              {selectedSession}
-                            </Badge>
-                          )}
+                          <Badge variant={getSessionBadgeVariant(selectedSession)}>
+                            {selectedSession}
+                          </Badge>
                         </td>
                         <td className="py-3 px-4">
                           {attendanceRecord ? (
