@@ -169,6 +169,9 @@ export default function LoginPage() {
                   <div onSubmit={handleStudentLogin} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="rollNumber">Roll Number</Label>
+                      <p className="text-sm text-gray-500">
+                        Enter your roll number in CAPITAL LETTERS
+                      </p>
                       <Input
                         id="rollNumber"
                         type="text"
