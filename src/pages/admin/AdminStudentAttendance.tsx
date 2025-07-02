@@ -125,7 +125,7 @@ export default function AdminStudentAttendance() {
       )
       setBrigadeNotMarkedStats(stats)
     } catch (error) {
-      console.error('Failed to fetch brigade not marked stats:', error)
+      console.warn('Failed to fetch brigade not marked stats:', error)
       // Create fallback stats if API doesn't exist yet
       setBrigadeNotMarkedStats([])
     }
