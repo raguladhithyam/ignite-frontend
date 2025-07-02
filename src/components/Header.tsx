@@ -51,7 +51,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       navigate('/student/profile')
     } else {
       // Fallback for other roles
-      navigate('/profile')
+      navigate('/brigade/profile')
     }
   }
 
