@@ -18,7 +18,9 @@ export default function AdminAttendance() {
   const [allStudents, setAllStudents] = useState<Student[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [brigades, setBrigades] = useState<Brigade[]>([])
+  const [brigadeStats, setBrigadeStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingBrigadeStats, setLoadingBrigadeStats] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState('')
   const [selectedEventDay, setSelectedEventDay] = useState('')
@@ -42,6 +44,7 @@ export default function AdminAttendance() {
     if (selectedEventDay) {
       fetchAttendanceRecords()
       fetchAttendanceSummary()
+      fetchBrigadeStats()
     }
   }, [selectedEventDay, selectedBrigade, selectedSession, pagination.currentPage])
 
@@ -108,6 +111,23 @@ export default function AdminAttendance() {
       setSummary(data)
     } catch (error) {
       console.error('Failed to fetch attendance summary:', error)
+    }
+  }
+
+  const fetchBrigadeStats = async () => {
+    if (!selectedEventDay) return
+
+    try {
+      setLoadingBrigadeStats(true)
+      const response = await attendanceApi.getBrigadeSummary(
+        selectedEventDay,
+        selectedSession
+      )
+      setBrigadeStats((response as any)?.brigadeStats || [])
+    } catch (error) {
+      console.error('Failed to fetch brigade stats:', error)
+    } finally {
+      setLoadingBrigadeStats(false)
     }
   }
 
@@ -551,6 +571,79 @@ export default function AdminAttendance() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Brigade-wise Not Marked Count */}
+      {selectedEventDay && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Brigade-wise Not Marked Count - {selectedSession} Session</CardTitle>
+            <CardDescription>
+              Overview of attendance marking progress across all brigades
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingBrigadeStats ? (
+              <div className="flex justify-center py-8">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {brigadeStats.map((brigade) => (
+                  <div
+                    key={brigade.brigadeId}
+                    className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-sm truncate" title={brigade.brigadeName}>
+                        {brigade.brigadeName}
+                      </h3>
+                      <Badge 
+                        variant={brigade.notMarkedCount === 0 ? "default" : "secondary"}
+                        className={brigade.notMarkedCount === 0 ? "bg-green-600" : ""}
+                      >
+                        {brigade.notMarkedCount === 0 ? "Complete" : "Pending"}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total Students:</span>
+                        <span className="font-medium">{brigade.totalStudents}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Marked:</span>
+                        <span className="font-medium text-green-600">{brigade.markedStudents}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Not Marked:</span>
+                        <span className="font-medium text-orange-600">{brigade.notMarkedCount}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div 
+                          className="bg-green-600 h-2 rounded-full transition-all" 
+                          style={{ 
+                            width: `${brigade.totalStudents > 0 ? (brigade.markedStudents / brigade.totalStudents) * 100 : 0}%` 
+                          }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500 text-center">
+                        {brigade.totalStudents > 0 ? 
+                          Math.round((brigade.markedStudents / brigade.totalStudents) * 100) : 0}% Complete
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {!loadingBrigadeStats && brigadeStats.length === 0 && (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No brigade data available</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Students with Attendance Records */}
