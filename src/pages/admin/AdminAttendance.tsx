@@ -26,7 +26,7 @@ export default function AdminAttendance() {
   const [selectedEventDay, setSelectedEventDay] = useState('')
   const [selectedBrigade, setSelectedBrigade] = useState('')
   const [selectedSession, setSelectedSession] = useState<'FN' | 'AN'>('FN') // Default to FN
-  const [setSummary] = useState<any>(null)
+  // const [setSummary] = useState<any>(null)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -50,7 +50,6 @@ export default function AdminAttendance() {
   useEffect(() => {
     if (selectedEventDay) {
       fetchAttendanceRecords()
-      fetchAttendanceSummary()
       fetchBrigadeStats()
       fetchTotalStats() // Add this line
     }
@@ -134,19 +133,19 @@ export default function AdminAttendance() {
     }
   }
 
-  const fetchAttendanceSummary = async () => {
-    if (!selectedEventDay) return
+  // const fetchAttendanceSummary = async () => {
+  //   if (!selectedEventDay) return
 
-    try {
-      const data = await attendanceApi.getAttendanceSummary(
-        selectedEventDay,
-        selectedSession // Pass the selected session to get session-specific summary
-      )
-      setSummary(data)
-    } catch (error) {
-      console.error('Failed to fetch attendance summary:', error)
-    }
-  }
+  //   try {
+  //     const data = await attendanceApi.getAttendanceSummary(
+  //       selectedEventDay,
+  //       selectedSession // Pass the selected session to get session-specific summary
+  //     )
+  //     setSummary(data)
+  //   } catch (error) {
+  //     console.error('Failed to fetch attendance summary:', error)
+  //   }
+  // }
 
   const fetchBrigadeStats = async () => {
     if (!selectedEventDay) return
