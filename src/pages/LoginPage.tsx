@@ -168,7 +168,7 @@ export default function LoginPage() {
                 <TabsContent value="student" className="space-y-4">
                   <div onSubmit={handleStudentLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="rollNumber">Temporary Roll Number</Label>
+                      <Label htmlFor="rollNumber">Roll Number</Label>
                       <Input
                         id="rollNumber"
                         type="text"
@@ -180,6 +180,9 @@ export default function LoginPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="studentPassword">Password</Label>
+                      <p className="text-sm text-gray-500">
+                        Default password is student123
+                      </p>
                       <Input
                         id="studentPassword"
                         type="password"
