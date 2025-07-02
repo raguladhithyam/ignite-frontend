@@ -24,6 +24,11 @@ export interface BulkMarkAttendanceData {
   status?: 'PRESENT' | 'ABSENT' | 'LATE'
 }
 
+export interface UpdateAttendanceData {
+  recordId: string
+  status: 'PRESENT' | 'ABSENT' | 'LATE'
+}
+
 export const attendanceApi = {
   getAttendanceRecords: async (params: AttendanceQuery = {}): Promise<PaginatedResponse<AttendanceRecord>> => {
     const searchParams = new URLSearchParams()
@@ -51,5 +56,9 @@ export const attendanceApi = {
   getAttendanceSummary: async (eventDayId: string, session?: 'FN' | 'AN') => {
     const params = session ? `?session=${session}` : ''
     return apiClient.get(`/attendance/summary/${eventDayId}${params}`)
+  },
+
+  updateAttendance: async (data: UpdateAttendanceData): Promise<AttendanceRecord> => {
+  return apiClient.put(`/attendance/update/${data.recordId}`, { status: data.status })
   },
 }

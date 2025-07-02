@@ -23,6 +23,7 @@ export default function AdminStudentAttendance() {
   const [selectedSession, setSelectedSession] = useState<'FN' | 'AN'>('FN')
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
   const [markingIndividual, setMarkingIndividual] = useState<string | null>(null)
+  const [updatingAttendance, setUpdatingAttendance] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBrigade, setSelectedBrigade] = useState('')
   const [pagination, setPagination] = useState({
@@ -119,6 +120,23 @@ export default function AdminStudentAttendance() {
       toast.error(error instanceof Error ? error.message : 'Failed to mark attendance')
     } finally {
       setMarkingIndividual(null)
+    }
+  }
+
+  const handleUpdateAttendance = async (recordId: string, status: 'PRESENT' | 'ABSENT' | 'LATE') => {
+    try {
+      setUpdatingAttendance(recordId)
+      await attendanceApi.updateAttendance({
+        recordId,
+        status
+      })
+      
+      toast.success('Attendance updated successfully', { duration: 2000 })
+      fetchAttendanceRecords()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update attendance')
+    } finally {
+      setUpdatingAttendance(null)
     }
   }
 
@@ -456,6 +474,7 @@ export default function AdminStudentAttendance() {
                 const attendanceStatus = getStudentAttendanceStatus(student.id)
                 const isSelected = selectedStudents.has(student.id)
                 const isMarkingThisStudent = markingIndividual === student.id
+                const isUpdatingThisStudent = updatingAttendance === attendanceStatus?.id
                 
                 return (
                   <div
@@ -492,6 +511,47 @@ export default function AdminStudentAttendance() {
                             <span className="text-xs text-gray-500">
                               {formatDateTime(attendanceStatus.markedAt)}
                             </span>
+                            <div className="flex gap-1 ml-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateAttendance(attendanceStatus.id, 'PRESENT')}
+                                disabled={isUpdatingThisStudent || attendanceStatus.status === 'PRESENT'}
+                                className="h-8 px-2"
+                              >
+                                {isUpdatingThisStudent ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="h-3 w-3" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateAttendance(attendanceStatus.id, 'ABSENT')}
+                                disabled={isUpdatingThisStudent || attendanceStatus.status === 'ABSENT'}
+                                className="h-8 px-2"
+                              >
+                                {isUpdatingThisStudent ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <XCircle className="h-3 w-3" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateAttendance(attendanceStatus.id, 'LATE')}
+                                disabled={isUpdatingThisStudent || attendanceStatus.status === 'LATE'}
+                                className="h-8 px-2"
+                              >
+                                {isUpdatingThisStudent ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <AlertCircle className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex gap-1">
