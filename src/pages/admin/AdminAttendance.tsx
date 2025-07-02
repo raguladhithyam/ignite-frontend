@@ -60,32 +60,18 @@ export default function AdminAttendance() {
     if (!selectedEventDay) return
 
     try {
-      // Fetch total students count - apply brigade filter if selected
-      const studentsParams: any = {
+      // Fetch total students count WITHOUT any brigade filter - always show all students
+      const studentsResponse = await studentsApi.getStudents({
         page: 1,
         limit: 1, // We only need the pagination info
-      }
+      })
       
-      // Add brigade filter if selected
-      if (selectedBrigade) {
-        studentsParams.brigadeId = selectedBrigade
-      }
-      
-      const studentsResponse = await studentsApi.getStudents(studentsParams)
-      
-      // Fetch all attendance records for the session - apply brigade filter if selected
-      const attendanceParams: any = {
+      // Fetch all attendance records for the session WITHOUT brigade filter - always show all data
+      const attendanceResponse = await attendanceApi.getAttendanceRecords({
         eventDayId: selectedEventDay,
         session: selectedSession,
         limit: 10000
-      }
-      
-      // Add brigade filter if selected
-      if (selectedBrigade) {
-        attendanceParams.brigadeId = selectedBrigade
-      }
-      
-      const attendanceResponse = await attendanceApi.getAttendanceRecords(attendanceParams)
+      })
       
       setTotalStats({
         totalStudents: studentsResponse.pagination.totalItems,
