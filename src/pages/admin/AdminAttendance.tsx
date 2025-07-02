@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { attendanceApi } from '@/api/attendance'
 import { eventsApi } from '@/api/events'
-import { brigadesApi } from '@/api/brigades'
 import { studentsApi } from '@/api/students'
+import { brigadesApi } from '@/api/brigades'
 import { AttendanceRecord, Event, Brigade, Student } from '@/types'
 import { UserCheck, Clock, Users, Calendar, Download } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -13,11 +13,21 @@ import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
 import * as XLSX from 'xlsx'
 
+interface BrigadeNotMarkedStats {
+  brigadeId: string
+  brigadeName: string
+  totalStudents: number
+  markedStudents: number
+  notMarkedStudents: number
+  notMarkedPercentage: string
+}
+
 export default function AdminAttendance() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [allStudents, setAllStudents] = useState<Student[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [brigades, setBrigades] = useState<Brigade[]>([])
+  const [brigadeNotMarkedStats, setBrigadeNotMarkedStats] = useState<BrigadeNotMarkedStats[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState('')
@@ -42,6 +52,7 @@ export default function AdminAttendance() {
     if (selectedEventDay) {
       fetchAttendanceRecords()
       fetchAttendanceSummary()
+      fetchBrigadeNotMarkedStats()
     }
   }, [selectedEventDay, selectedBrigade, selectedSession, pagination.currentPage])
 
@@ -111,6 +122,22 @@ export default function AdminAttendance() {
     }
   }
 
+  const fetchBrigadeNotMarkedStats = async () => {
+    if (!selectedEventDay) return
+
+    try {
+      const stats = await attendanceApi.getBrigadeNotMarkedStats(
+        selectedEventDay,
+        selectedSession
+      )
+      setBrigadeNotMarkedStats(stats)
+    } catch (error) {
+      console.error('Failed to fetch brigade not marked stats:', error)
+      // Create fallback stats if API doesn't exist yet
+      setBrigadeNotMarkedStats([])
+    }
+  }
+
   // Get filtered students based on selected brigade
   const getFilteredStudents = () => {
     let filteredStudents = allStudents
@@ -148,10 +175,10 @@ export default function AdminAttendance() {
     )
   }
 
-  // Calculate enhanced summary statistics (session-specific)
+  // Calculate enhanced summary statistics for ALL students (not filtered by brigade)
   const getEnhancedSummary = () => {
-    const filteredStudents = getFilteredStudents()
-    const totalStudents = filteredStudents.length
+    // Always use all students for analytics, not filtered by brigade
+    const totalStudents = allStudents.length
     
     // Only count attendance records for the selected session
     const sessionAttendanceRecords = attendanceRecords.filter(record => 
@@ -488,14 +515,14 @@ export default function AdminAttendance() {
         </CardContent>
       </Card>
 
-      {/* Enhanced Summary Cards */}
+      {/* Enhanced Summary Cards - Shows ALL students data */}
       {selectedEventDay && (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Students</p>
+                  <p className="text-sm font-medium text-gray-600">Total Students (All Brigades)</p>
                   <p className="text-3xl font-bold text-gray-900">{enhancedSummary.totalStudents}</p>
                 </div>
                 <Users className="h-8 w-8 text-blue-500" />
@@ -551,6 +578,52 @@ export default function AdminAttendance() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Brigade-wise Not Marked Stats */}
+      {selectedEventDay && brigadeNotMarkedStats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Brigade-wise Not Marked Count</CardTitle>
+            <CardDescription>
+              Students who haven't been marked for attendance in each brigade
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {brigadeNotMarkedStats.map((stat) => (
+                <div key={stat.brigadeId} className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-gray-900">{stat.brigadeName}</h3>
+                    <Badge variant="outline" className="text-orange-600 border-orange-300">
+                      {stat.notMarkedPercentage}% not marked
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Total Students:</span>
+                      <span className="font-medium">{stat.totalStudents}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Marked:</span>
+                      <span className="font-medium text-green-600">{stat.markedStudents}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Not Marked:</span>
+                      <span className="font-medium text-orange-600">{stat.notMarkedStudents}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                      <div 
+                        className="bg-green-500 h-2 rounded-full" 
+                        style={{ width: `${((stat.markedStudents / stat.totalStudents) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Students with Attendance Records */}

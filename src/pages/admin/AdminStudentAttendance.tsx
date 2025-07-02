@@ -7,17 +7,29 @@ import { eventsApi } from '@/api/events'
 import { studentsApi } from '@/api/students'
 import { brigadesApi } from '@/api/brigades'
 import { AttendanceRecord, Event, EventDay, Student, Brigade } from '@/types'
-import { Calendar, CheckCircle, Loader2, Users, Clock, UserCheck, XCircle, AlertCircle, Search } from 'lucide-react'
+import { Calendar, CheckCircle, Loader2, Users, Clock, UserCheck, XCircle, AlertCircle, Search, Edit } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+
+interface BrigadeNotMarkedStats {
+  brigadeId: string
+  brigadeName: string
+  totalStudents: number
+  markedStudents: number
+  notMarkedStudents: number
+  notMarkedPercentage: string
+}
 
 export default function AdminStudentAttendance() {
   const [currentEvent, setCurrentEvent] = useState<{ event: Event; currentDay: EventDay | null } | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [brigades, setBrigades] = useState<Brigade[]>([])
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
+  const [brigadeNotMarkedStats, setBrigadeNotMarkedStats] = useState<BrigadeNotMarkedStats[]>([])
   const [loading, setLoading] = useState(true)
   const [markingAttendance, setMarkingAttendance] = useState(false)
   const [selectedSession, setSelectedSession] = useState<'FN' | 'AN'>('FN')
@@ -25,6 +37,10 @@ export default function AdminStudentAttendance() {
   const [markingIndividual, setMarkingIndividual] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBrigade, setSelectedBrigade] = useState('')
+  const [showChangeAttendanceModal, setShowChangeAttendanceModal] = useState(false)
+  const [selectedAttendanceRecord, setSelectedAttendanceRecord] = useState<AttendanceRecord | null>(null)
+  const [newAttendanceStatus, setNewAttendanceStatus] = useState<'PRESENT' | 'ABSENT' | 'LATE'>('PRESENT')
+  const [updatingAttendance, setUpdatingAttendance] = useState(false)
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -44,6 +60,7 @@ export default function AdminStudentAttendance() {
   useEffect(() => {
     if (currentEvent?.currentDay) {
       fetchAttendanceRecords()
+      fetchBrigadeNotMarkedStats()
     }
   }, [currentEvent, selectedSession])
 
@@ -98,6 +115,22 @@ export default function AdminStudentAttendance() {
     }
   }
 
+  const fetchBrigadeNotMarkedStats = async () => {
+    if (!currentEvent?.currentDay) return
+
+    try {
+      const stats = await attendanceApi.getBrigadeNotMarkedStats(
+        currentEvent.currentDay.id,
+        selectedSession
+      )
+      setBrigadeNotMarkedStats(stats)
+    } catch (error) {
+      console.error('Failed to fetch brigade not marked stats:', error)
+      // Create fallback stats if API doesn't exist yet
+      setBrigadeNotMarkedStats([])
+    }
+  }
+
   const handleMarkAttendance = async (studentId: string, status: 'PRESENT' | 'ABSENT' | 'LATE' = 'PRESENT') => {
     if (!currentEvent?.currentDay) {
       toast.error('No active event day')
@@ -115,6 +148,7 @@ export default function AdminStudentAttendance() {
       
       toast.success('Attendance marked successfully', { duration: 2000 })
       fetchAttendanceRecords()
+      fetchBrigadeNotMarkedStats()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark attendance')
     } finally {
@@ -140,10 +174,38 @@ export default function AdminStudentAttendance() {
       toast.success(`Attendance marked for ${selectedStudents.size} students`, { duration: 2000 })
       setSelectedStudents(new Set())
       fetchAttendanceRecords()
+      fetchBrigadeNotMarkedStats()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark bulk attendance')
     } finally {
       setMarkingAttendance(false)
+    }
+  }
+
+  const handleChangeAttendance = (record: AttendanceRecord) => {
+    setSelectedAttendanceRecord(record)
+    setNewAttendanceStatus(record.status)
+    setShowChangeAttendanceModal(true)
+  }
+
+  const handleUpdateAttendance = async () => {
+    if (!selectedAttendanceRecord) return
+
+    try {
+      setUpdatingAttendance(true)
+      await attendanceApi.updateAttendance(selectedAttendanceRecord.id, {
+        status: newAttendanceStatus
+      })
+      
+      toast.success('Attendance updated successfully', { duration: 2000 })
+      setShowChangeAttendanceModal(false)
+      setSelectedAttendanceRecord(null)
+      fetchAttendanceRecords()
+      fetchBrigadeNotMarkedStats()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update attendance')
+    } finally {
+      setUpdatingAttendance(false)
     }
   }
 
@@ -181,13 +243,13 @@ export default function AdminStudentAttendance() {
     }
   }
 
-  // Calculate enhanced summary statistics (session-specific) - SAME AS AdminAttendance
+  // Calculate enhanced summary statistics for ALL brigades (not filtered)
   const getEnhancedSummary = () => {
-    // Get all students that match current filters
-    const allFilteredStudents = students.length > 0 ? students : []
-    const totalStudents = pagination.totalItems || allFilteredStudents.length
+    // Always use total items from pagination for all students count
+    const totalStudents = pagination.totalItems || 0
     
-    // Only count attendance records for the selected session
+    // For attendance records, we need to get all records regardless of current filter
+    // This ensures analytics show data for all brigades
     const sessionAttendanceRecords = attendanceRecords.filter(record => 
       record.session === selectedSession
     )
@@ -277,13 +339,13 @@ export default function AdminStudentAttendance() {
         </CardContent>
       </Card>
 
-      {/* Enhanced Summary Cards - SAME AS AdminAttendance */}
+      {/* Enhanced Summary Cards - Shows ALL brigades data */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Students</p>
+                <p className="text-sm font-medium text-gray-600">Total Students (All Brigades)</p>
                 <p className="text-3xl font-bold text-gray-900">{enhancedSummary.totalStudents}</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
@@ -339,6 +401,52 @@ export default function AdminStudentAttendance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Brigade-wise Not Marked Stats */}
+      {brigadeNotMarkedStats.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Brigade-wise Not Marked Count</CardTitle>
+            <CardDescription>
+              Students who haven't been marked for attendance in each brigade
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {brigadeNotMarkedStats.map((stat) => (
+                <div key={stat.brigadeId} className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-gray-900">{stat.brigadeName}</h3>
+                    <Badge variant="outline" className="text-orange-600 border-orange-300">
+                      {stat.notMarkedPercentage}% not marked
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Total Students:</span>
+                      <span className="font-medium">{stat.totalStudents}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Marked:</span>
+                      <span className="font-medium text-green-600">{stat.markedStudents}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Not Marked:</span>
+                      <span className="font-medium text-orange-600">{stat.notMarkedStudents}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                      <div 
+                        className="bg-green-500 h-2 rounded-full" 
+                        style={{ width: `${((stat.markedStudents / stat.totalStudents) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card>
@@ -492,6 +600,15 @@ export default function AdminStudentAttendance() {
                             <span className="text-xs text-gray-500">
                               {formatDateTime(attendanceStatus.markedAt)}
                             </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleChangeAttendance(attendanceStatus)}
+                              className="ml-2"
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Change
+                            </Button>
                           </div>
                         ) : (
                           <div className="flex gap-1">
@@ -573,6 +690,66 @@ export default function AdminStudentAttendance() {
           )}
         </CardContent>
       </Card>
+
+      {/* Change Attendance Modal */}
+      <Dialog open={showChangeAttendanceModal} onOpenChange={setShowChangeAttendanceModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Attendance Status</DialogTitle>
+            <DialogDescription>
+              Update attendance for {selectedAttendanceRecord?.student?.firstName} {selectedAttendanceRecord?.student?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Current Status</Label>
+              <div className="p-2 bg-gray-50 rounded">
+                <Badge variant={getStatusBadgeVariant(selectedAttendanceRecord?.status || '')}>
+                  {selectedAttendanceRecord?.status}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newStatus">New Status</Label>
+              <select
+                id="newStatus"
+                value={newAttendanceStatus}
+                onChange={(e) => setNewAttendanceStatus(e.target.value as 'PRESENT' | 'ABSENT' | 'LATE')}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="PRESENT">Present</option>
+                <option value="ABSENT">Absent</option>
+                <option value="LATE">Late</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowChangeAttendanceModal(false)}
+                disabled={updatingAttendance}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateAttendance}
+                disabled={updatingAttendance || newAttendanceStatus === selectedAttendanceRecord?.status}
+              >
+                {updatingAttendance ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Attendance'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
