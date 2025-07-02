@@ -27,27 +27,21 @@ export default function LoginPage() {
 
   // Enhanced mobile detection function - Multiple layers of detection
   const isMobileDevice = () => {
-    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
-    
-    // Check for mobile user agents
-    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i
-    
-    // Check for touch device and small screen
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    const isSmallScreen = window.innerWidth <= 768 || window.screen.width <= 768
-    
-    // Additional checks for mobile devices
-    const hasOrientationChange = 'orientation' in window
-    const hasMobileVibrate = 'vibrate' in navigator
-    
-    return (
-      mobileRegex.test(userAgent) || 
-      (isTouchDevice && isSmallScreen) ||
-      hasOrientationChange ||
-      hasMobileVibrate ||
-      window.DeviceMotionEvent !== undefined ||
-      window.DeviceOrientationEvent !== undefined
-    )
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+  
+  // More specific mobile/tablet regex
+  const mobileRegex = /Android.*Mobile|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile Safari/i
+  const tabletRegex = /iPad|Android(?!.*Mobile)|Tablet/i
+  
+  // Check screen size - be more conservative with breakpoints
+  const isSmallScreen = window.innerWidth < 768 && window.innerHeight < 1024
+  
+  // Check if it's specifically a mobile device (not just touch-enabled)
+  const isMobile = mobileRegex.test(userAgent)
+  const isTablet = tabletRegex.test(userAgent)
+  
+  // Only consider it mobile if it matches mobile patterns AND has small screen
+  return (isMobile || isTablet) && isSmallScreen
   }
 
   const handleAdminLogin = async (e: React.FormEvent) => {
