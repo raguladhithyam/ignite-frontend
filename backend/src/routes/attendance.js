@@ -253,6 +253,67 @@ router.post('/mark', requireAdminOrBrigadeLead, [
   }
 });
 
+// Update attendance record (Admin only)
+router.put('/:recordId', async (req, res) => {
+  try {
+    // Only allow ADMIN to update attendance records
+    if (req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only administrators can update attendance records' });
+    }
+
+    const { recordId } = req.params;
+    const { status } = req.body;
+
+    if (!['PRESENT', 'ABSENT', 'LATE'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    // Check if record exists
+    const existingRecord = await prisma.attendanceRecord.findUnique({
+      where: { id: recordId },
+      include: {
+        student: {
+          include: {
+            brigade: true
+          }
+        }
+      }
+    });
+
+    if (!existingRecord) {
+      return res.status(404).json({ error: 'Attendance record not found' });
+    }
+
+    // Update the record
+    const updatedRecord = await prisma.attendanceRecord.update({
+      where: { id: recordId },
+      data: {
+        status,
+        markedBy: req.user.id,
+        markedAt: new Date()
+      },
+      include: {
+        student: {
+          include: {
+            brigade: true
+          }
+        },
+        eventDay: {
+          include: {
+            event: true
+          }
+        }
+      }
+    });
+
+    logger.info(`Attendance updated: ${existingRecord.student.tempRollNumber} - ${existingRecord.session} - ${status} by ${req.user.email} (${req.user.role})`);
+    res.json(updatedRecord);
+  } catch (error) {
+    logger.error('Update attendance error:', error);
+    res.status(500).json({ error: 'Failed to update attendance' });
+  }
+});
+
 // Bulk mark attendance
 router.post('/bulk-mark', requireAdminOrBrigadeLead, [
   body('eventDayId').isLength({ min: 1 }).withMessage('Event day ID is required'),
@@ -401,6 +462,68 @@ router.post('/bulk-mark', requireAdminOrBrigadeLead, [
   } catch (error) {
     logger.error('Bulk mark attendance error:', error);
     res.status(500).json({ error: 'Failed to mark bulk attendance' });
+  }
+});
+
+// Get brigade-wise not marked stats
+router.get('/brigade-not-marked-stats/:eventDayId', async (req, res) => {
+  try {
+    const { eventDayId } = req.params;
+    const { session } = req.query;
+
+    if (!session || !['FN', 'AN'].includes(session)) {
+      return res.status(400).json({ error: 'Valid session (FN or AN) is required' });
+    }
+
+    // Get all brigades
+    const brigades = await prisma.brigade.findMany({
+      where: { isActive: true },
+      include: {
+        students: {
+          where: { isActive: true }
+        }
+      }
+    });
+
+    // Get attendance records for the specific event day and session
+    const attendanceRecords = await prisma.attendanceRecord.findMany({
+      where: {
+        eventDayId,
+        session
+      },
+      include: {
+        student: true
+      }
+    });
+
+    // Calculate stats for each brigade
+    const brigadeStats = brigades.map(brigade => {
+      const totalStudents = brigade.students.length;
+      const markedStudents = attendanceRecords.filter(record => 
+        brigade.students.some(student => student.id === record.studentId)
+      ).length;
+      const notMarkedStudents = totalStudents - markedStudents;
+      const notMarkedPercentage = totalStudents > 0 
+        ? ((notMarkedStudents / totalStudents) * 100).toFixed(1)
+        : '0';
+
+      return {
+        brigadeId: brigade.id,
+        brigadeName: brigade.name,
+        totalStudents,
+        markedStudents,
+        notMarkedStudents,
+        notMarkedPercentage
+      };
+    });
+
+    // Filter out brigades with no students
+    const filteredStats = brigadeStats.filter(stat => stat.totalStudents > 0);
+
+    res.json(filteredStats);
+  } catch (error) {
+    logger.error('Get brigade not marked stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch brigade not marked stats' });
   }
 });
 

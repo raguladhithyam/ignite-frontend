@@ -57,12 +57,12 @@ export const attendanceApi = {
     return apiClient.post('/attendance/mark', data)
   },
 
-  bulkMarkAttendance: async (data: BulkMarkAttendanceData): Promise<{ message: string; records: AttendanceRecord[] }> => {
-    return apiClient.post('/attendance/bulk-mark', data)
-  },
-
   updateAttendance: async (recordId: string, data: UpdateAttendanceData): Promise<AttendanceRecord> => {
     return apiClient.put(`/attendance/${recordId}`, data)
+  },
+
+  bulkMarkAttendance: async (data: BulkMarkAttendanceData): Promise<{ message: string; records: AttendanceRecord[] }> => {
+    return apiClient.post('/attendance/bulk-mark', data)
   },
 
   getAttendanceSummary: async (eventDayId: string, session?: 'FN' | 'AN') => {
