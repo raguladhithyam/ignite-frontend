@@ -1,19 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+// import { useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { GraduationCap, Shield, Info } from 'lucide-react'
+// import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { GraduationCap, Shield } from 'lucide-react'
+// import { Info } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 export default function LoginPage() {
   const { login, studentLogin } = useAuth()
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('admin')
-  const [showInfoPopup, setShowInfoPopup] = useState(false)
+  // const [showInfoPopup, setShowInfoPopup] = useState(false)
 
   const [adminForm, setAdminForm] = useState({
     email: '',
@@ -26,9 +28,9 @@ export default function LoginPage() {
   })
 
   // Show popup on component mount
-  useEffect(() => {
-    setShowInfoPopup(true)
-  }, [])
+  // useEffect(() => {
+  //   setShowInfoPopup(true)
+  // }, [])
 
   const handleAdminLogin = async (e: { preventDefault: () => void }) => {
     e.preventDefault()
@@ -173,7 +175,7 @@ export default function LoginPage() {
       </div>
 
       {/* Information Popup */}
-      <Dialog open={showInfoPopup} onOpenChange={setShowInfoPopup}>
+      {/* <Dialog open={showInfoPopup} onOpenChange={setShowInfoPopup}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -199,7 +201,7 @@ export default function LoginPage() {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </>
   )
 }
