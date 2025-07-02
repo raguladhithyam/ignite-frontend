@@ -24,19 +24,6 @@ export interface BulkMarkAttendanceData {
   status?: 'PRESENT' | 'ABSENT' | 'LATE'
 }
 
-export interface UpdateAttendanceData {
-  status: 'PRESENT' | 'ABSENT' | 'LATE'
-}
-
-export interface BrigadeNotMarkedStats {
-  brigadeId: string
-  brigadeName: string
-  totalStudents: number
-  markedStudents: number
-  notMarkedStudents: number
-  notMarkedPercentage: string
-}
-
 export const attendanceApi = {
   getAttendanceRecords: async (params: AttendanceQuery = {}): Promise<PaginatedResponse<AttendanceRecord>> => {
     const searchParams = new URLSearchParams()
@@ -57,10 +44,6 @@ export const attendanceApi = {
     return apiClient.post('/attendance/mark', data)
   },
 
-  updateAttendance: async (recordId: string, data: UpdateAttendanceData): Promise<AttendanceRecord> => {
-    return apiClient.put(`/attendance/${recordId}`, data)
-  },
-
   bulkMarkAttendance: async (data: BulkMarkAttendanceData): Promise<{ message: string; records: AttendanceRecord[] }> => {
     return apiClient.post('/attendance/bulk-mark', data)
   },
@@ -68,9 +51,5 @@ export const attendanceApi = {
   getAttendanceSummary: async (eventDayId: string, session?: 'FN' | 'AN') => {
     const params = session ? `?session=${session}` : ''
     return apiClient.get(`/attendance/summary/${eventDayId}${params}`)
-  },
-
-  getBrigadeNotMarkedStats: async (eventDayId: string, session: 'FN' | 'AN'): Promise<BrigadeNotMarkedStats[]> => {
-    return apiClient.get(`/attendance/brigade-not-marked-stats/${eventDayId}?session=${session}`)
   },
 }
