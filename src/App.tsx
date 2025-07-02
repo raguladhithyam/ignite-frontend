@@ -19,12 +19,14 @@ import AdminAnalytics from './pages/admin/AdminAnalytics'
 import AdminNotifications from './pages/admin/AdminNotifications'
 import AdminStudentSummary from './pages/admin/AdminStudentSummary'
 import AdminLogs from './pages/admin/AdminLogs'
+import AdminProfile from './pages/admin/AdminProfile'
 
 // Brigade Lead Pages
 import BrigadeStudents from './pages/brigade-lead/BrigadeStudents'
 import BrigadeAttendance from './pages/brigade-lead/BrigadeAttendance'
 import BrigadeAnalytics from './pages/brigade-lead/BrigadeAnalytics'
 import BrigadeNotifications from './pages/brigade-lead/BrigadeNotifications'
+import BrigadeProfile from './pages/brigade-lead/BrigadeProfile'
 
 // Student Pages
 import StudentProfile from './pages/student/StudentProfile'
@@ -73,6 +75,7 @@ function App() {
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
             <Route path="/admin/logs" element={<AdminLogs />} />
+            <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
           </>
         )}
@@ -81,6 +84,7 @@ function App() {
         {user.role === 'BRIGADE_LEAD' && (
           <>
             <Route path="/brigade/dashboard" element={<BrigadeLeadDashboard />} />
+            <Route path="/brigade/profile" element={<BrigadeProfile />} />
             <Route path="/brigade/students" element={<BrigadeStudents />} />
             <Route path="/brigade/attendance" element={<BrigadeAttendance />} />
             <Route path="/brigade/analytics" element={<BrigadeAnalytics />} />

@@ -1,5 +1,6 @@
 import { Menu, User, LogOut, Settings, Clock } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { Button } from './ui/button'
 import {
   DropdownMenu,
@@ -20,6 +21,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [currentTime, setCurrentTime] = useState('')
 
   useEffect(() => {
@@ -41,6 +43,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     return () => clearInterval(interval)
   }, [])
+
+  const handleProfileClick = () => {
+    if (user?.role === 'ADMIN') {
+      navigate('/admin/profile')
+    } else if (user?.role === 'STUDENT') {
+      navigate('/student/profile')
+    } else {
+      // Fallback for other roles
+      navigate('/profile')
+    }
+  }
 
   if (!user) return null
 
@@ -101,7 +114,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProfileClick}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>

@@ -26,6 +26,7 @@ interface SidebarProps {
 
 const adminNavItems = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+  { name: 'Profile', href: '/admin/profile', icon: Users },
   { name: 'Students', href: '/admin/students', icon: GraduationCap },
   { name: 'Student Summary', href: '/admin/student-summary', icon: FileText },
   { name: 'Brigades', href: '/admin/brigades', icon: Shield },
@@ -41,6 +42,7 @@ const adminNavItems = [
 
 const brigadeLeadNavItems = [
   { name: 'Dashboard', href: '/brigade/dashboard', icon: LayoutDashboard },
+  { name: 'Profile', href: '/brigade/profile', icon: Users },
   { name: 'Students', href: '/brigade/students', icon: GraduationCap },
   { name: 'Attendance', href: '/brigade/attendance', icon: UserCheck },
   { name: 'Analytics', href: '/brigade/analytics', icon: BarChart3 },
