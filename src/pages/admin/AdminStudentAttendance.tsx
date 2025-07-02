@@ -18,7 +18,9 @@ export default function AdminStudentAttendance() {
   const [students, setStudents] = useState<Student[]>([])
   const [brigades, setBrigades] = useState<Brigade[]>([])
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
+  const [brigadeStats, setBrigadeStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingBrigadeStats, setLoadingBrigadeStats] = useState(false)
   const [markingAttendance, setMarkingAttendance] = useState(false)
   const [selectedSession, setSelectedSession] = useState<'FN' | 'AN'>('FN')
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set())
@@ -45,6 +47,7 @@ export default function AdminStudentAttendance() {
   useEffect(() => {
     if (currentEvent?.currentDay) {
       fetchAttendanceRecords()
+      fetchBrigadeStats()
     }
   }, [currentEvent, selectedSession])
 
@@ -99,6 +102,23 @@ export default function AdminStudentAttendance() {
     }
   }
 
+  const fetchBrigadeStats = async () => {
+    if (!currentEvent?.currentDay) return
+
+    try {
+      setLoadingBrigadeStats(true)
+        const response = await attendanceApi.getBrigadeSummary(
+          currentEvent.currentDay.id,
+          selectedSession
+        )
+        setBrigadeStats((response as any)?.brigadeStats || [])
+    } catch (error) {
+      console.error('Failed to fetch brigade stats:', error)
+    } finally {
+      setLoadingBrigadeStats(false)
+    }
+  }
+
   const handleMarkAttendance = async (studentId: string, status: 'PRESENT' | 'ABSENT' | 'LATE' = 'PRESENT') => {
     if (!currentEvent?.currentDay) {
       toast.error('No active event day')
@@ -116,6 +136,7 @@ export default function AdminStudentAttendance() {
       
       toast.success('Attendance marked successfully', { duration: 2000 })
       fetchAttendanceRecords()
+      fetchBrigadeStats() // Refresh brigade stats
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark attendance')
     } finally {
@@ -133,6 +154,7 @@ export default function AdminStudentAttendance() {
       
       toast.success('Attendance updated successfully', { duration: 2000 })
       fetchAttendanceRecords()
+      fetchBrigadeStats() // Refresh brigade stats
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update attendance')
     } finally {
@@ -158,6 +180,7 @@ export default function AdminStudentAttendance() {
       toast.success(`Attendance marked for ${selectedStudents.size} students`, { duration: 2000 })
       setSelectedStudents(new Set())
       fetchAttendanceRecords()
+      fetchBrigadeStats() // Refresh brigade stats
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to mark bulk attendance')
     } finally {
@@ -357,6 +380,110 @@ export default function AdminStudentAttendance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Brigade-wise Not Marked Count */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Brigade-wise Not Marked Count - {selectedSession} Session</CardTitle>
+          <CardDescription>
+            Overview of attendance marking progress across all brigades
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingBrigadeStats ? (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {brigadeStats.map((brigade) => (
+                <div
+                  key={brigade.brigadeId}
+                  className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-sm truncate" title={brigade.brigadeName}>
+                      {brigade.brigadeName}
+                    </h3>
+                    <Badge 
+                      variant={brigade.notMarkedCount === 0 ? "default" : "secondary"}
+                      className={brigade.notMarkedCount === 0 ? "bg-green-600" : ""}
+                    >
+                      {brigade.notMarkedCount === 0 ? "Complete" : "Pending"}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Students:</span>
+                      <span className="font-medium">{brigade.totalStudents}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Marked:</span>
+                      <span className="font-medium text-green-600">{brigade.markedStudents}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Not Marked:</span>
+                      <span className="font-medium text-orange-600">{brigade.notMarkedCount}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full transition-all" 
+                        style={{ 
+                          width: `${brigade.totalStudents > 0 ? (brigade.markedStudents / brigade.totalStudents) * 100 : 0}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 text-center">
+                      {brigade.totalStudents > 0 ? 
+                        Math.round((brigade.markedStudents / brigade.totalStudents) * 100) : 0}% Complete
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {!loadingBrigadeStats && brigadeStats.length === 0 && (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No brigade data available</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search students..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="w-full md:w-48">
+              <select
+                value={selectedBrigade}
+                onChange={(e) => setSelectedBrigade(e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="">All Brigades</option>
+                {brigades.map((brigade) => (
+                  <option key={brigade.id} value={brigade.id}>
+                    {brigade.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>

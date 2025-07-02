@@ -61,4 +61,9 @@ export const attendanceApi = {
   updateAttendance: async (data: UpdateAttendanceData): Promise<AttendanceRecord> => {
   return apiClient.put(`/attendance/update/${data.recordId}`, { status: data.status })
   },
+
+  getBrigadeSummary: async (eventDayId: string, session?: 'FN' | 'AN') => {
+  const params = session ? `?session=${session}` : ''
+  return apiClient.get(`/attendance/brigade-summary/${eventDayId}${params}`)
+  },
 }
