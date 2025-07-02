@@ -175,19 +175,6 @@ export default function BrigadeProfile() {
                 Active
               </div>
             </div>
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Award className="h-5 w-5 text-gray-500" />
-                <div>
-                  <h3 className="font-medium">Leadership Privileges</h3>
-                  <p className="text-sm text-gray-600">Brigade management and student oversight access</p>
-                </div>
-              </div>
-              <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                Leader Access
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>
