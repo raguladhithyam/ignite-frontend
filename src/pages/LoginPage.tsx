@@ -216,13 +216,13 @@ export default function LoginPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Smartphone className="h-5 w-5 text-orange-500" />
-              Admin Login Restricted
+              Admin / Brigade Lead Restricted
             </DialogTitle>
             <DialogDescription className="text-left pt-2">
               <div className="space-y-3">
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                   <p className="text-sm text-orange-800">
-                    <strong>Admin login is restricted on mobile devices.</strong>
+                    <strong>Admin / Brigade Lead login is restricted on mobile devices.</strong>
                   </p>
                   <p className="text-sm text-orange-700 mt-2">
                     Please use a laptop or desktop computer to access the admin panel for the best experience and security.
