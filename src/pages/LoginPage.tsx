@@ -1,21 +1,19 @@
 import { useState } from 'react'
-// import { useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-// import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { GraduationCap, Shield } from 'lucide-react'
-// import { Info } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { GraduationCap, Shield, Smartphone } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 export default function LoginPage() {
   const { login, studentLogin } = useAuth()
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('admin')
-  // const [showInfoPopup, setShowInfoPopup] = useState(false)
+  const [showMobileWarning, setShowMobileWarning] = useState(false)
 
   const [adminForm, setAdminForm] = useState({
     email: '',
@@ -27,13 +25,40 @@ export default function LoginPage() {
     password: ''
   })
 
-  // Show popup on component mount
-  // useEffect(() => {
-  //   setShowInfoPopup(true)
-  // }, [])
+  // Enhanced mobile detection function - Multiple layers of detection
+  const isMobileDevice = () => {
+    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+    
+    // Check for mobile user agents
+    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i
+    
+    // Check for touch device and small screen
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    const isSmallScreen = window.innerWidth <= 768 || window.screen.width <= 768
+    
+    // Additional checks for mobile devices
+    const hasOrientationChange = 'orientation' in window
+    const hasMobileVibrate = 'vibrate' in navigator
+    
+    return (
+      mobileRegex.test(userAgent) || 
+      (isTouchDevice && isSmallScreen) ||
+      hasOrientationChange ||
+      hasMobileVibrate ||
+      window.DeviceMotionEvent !== undefined ||
+      window.DeviceOrientationEvent !== undefined
+    )
+  }
 
-  const handleAdminLogin = async (e: { preventDefault: () => void }) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // ALWAYS check if user is on mobile device - BLOCK LOGIN COMPLETELY
+    if (isMobileDevice()) {
+      setShowMobileWarning(true)
+      return // STOP EXECUTION - NO LOGIN ALLOWED
+    }
+
     if (!adminForm.email || !adminForm.password) return
 
     try {
@@ -46,7 +71,7 @@ export default function LoginPage() {
     }
   }
 
-  const handleStudentLogin = async (e: { preventDefault: () => void }) => {
+  const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!studentForm.tempRollNumber || !studentForm.password) return
 
@@ -85,11 +110,19 @@ export default function LoginPage() {
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="admin" className="flex items-center gap-2">
+                  <TabsTrigger 
+                    value="admin" 
+                    className="flex items-center gap-2"
+                    onClick={() => {
+                      if (isMobileDevice()) {
+                        setShowMobileWarning(true)
+                      }
+                    }}
+                  >
                     <Shield className="h-4 w-4" />
-                    Admin/Lead
+                    Admin/Brigade Lead
                   </TabsTrigger>
-                  <TabsTrigger value="student" className="flex items-center gap-2" disabled>
+                  <TabsTrigger value="student" className="flex items-center gap-2">
                     <GraduationCap className="h-4 w-4" />
                     Student
                   </TabsTrigger>
@@ -119,12 +152,18 @@ export default function LoginPage() {
                         required
                       />
                     </div>
-                    <Button onClick={handleAdminLogin} className="w-full" disabled={loading}>
+                    <Button 
+                      onClick={handleAdminLogin} 
+                      className="w-full" 
+                      disabled={loading || isMobileDevice()}
+                    >
                       {loading ? (
                         <>
                           <LoadingSpinner size="sm" className="mr-2" />
                           Signing in...
                         </>
+                      ) : isMobileDevice() ? (
+                        'Mobile Login Restricted'
                       ) : (
                         'Sign In'
                       )}
@@ -174,19 +213,22 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Information Popup */}
-      {/* <Dialog open={showInfoPopup} onOpenChange={setShowInfoPopup}>
+      {/* Mobile Device Warning Popup */}
+      <Dialog open={showMobileWarning} onOpenChange={setShowMobileWarning}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5 text-blue-500" />
-              Student Login Information
+              <Smartphone className="h-5 w-5 text-orange-500" />
+              Admin Login Restricted
             </DialogTitle>
             <DialogDescription className="text-left pt-2">
               <div className="space-y-3">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-sm text-blue-800">
-                    The <strong>Student Login</strong> feature is temporarily disabled and will be enabled in a future updates.
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <p className="text-sm text-orange-800">
+                    <strong>Admin login is restricted on mobile devices.</strong>
+                  </p>
+                  <p className="text-sm text-orange-700 mt-2">
+                    Please use a laptop or desktop computer to access the admin panel for the best experience and security.
                   </p>
                 </div>
               </div>
@@ -194,14 +236,14 @@ export default function LoginPage() {
           </DialogHeader>
           <div className="flex justify-end pt-4">
             <Button 
-              onClick={() => setShowInfoPopup(false)}
+              onClick={() => setShowMobileWarning(false)}
               className="flex items-center gap-2"
             >
               Got it
             </Button>
           </div>
         </DialogContent>
-      </Dialog> */}
+      </Dialog>
     </>
   )
 }

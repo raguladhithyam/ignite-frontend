@@ -1,15 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { analyticsApi } from '@/api/analytics'
 import { DashboardStats } from '@/types'
 import { User, BookOpen, Calendar, TrendingUp, FileText, BarChart3, Bell, Settings, History, Lock } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState('instructions')
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showFirstLoginModal, setShowFirstLoginModal] = useState(false)
+
+  useEffect(() => {
+  // Show the popup when component mounts (first visit to profile page)
+    setShowFirstLoginModal(true)
+  }, [])
 
   const fetchDashboardStats = async () => {
     setLoading(true)
@@ -543,6 +551,33 @@ export default function StudentDashboard() {
       {/* Tab Content */}
       {activeTab === 'instructions' && renderInstructions()}
       {activeTab === 'analytics' && renderAnalytics()}
+      {/* First Login Password Change Popup */}
+<Dialog open={showFirstLoginModal} onOpenChange={setShowFirstLoginModal}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Welcome! Change Your Password</DialogTitle>
+      <DialogDescription>
+        For security reasons, please change your password after your first login.
+      </DialogDescription>
+    </DialogHeader>
+    
+    <div className="space-y-4">
+      <p className="text-sm text-gray-600">
+        It's recommended to change your default password to keep your account secure.
+      </p>
+      
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowFirstLoginModal(false)}
+        >
+          Got it
+        </Button>
+      </div>
+    </div>
+  </DialogContent>
+</Dialog>
     </div>
   )
 }
