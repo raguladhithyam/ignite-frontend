@@ -34,6 +34,13 @@ export default function AdminStudentAttendance() {
     totalItems: 0,
     itemsPerPage: 500 //keep the totalstudent count + 100 for better visiblity and marking of data
   })
+  const [totalStats, setTotalStats] = useState<{
+    totalStudents: number;
+    totalAttendanceRecords: AttendanceRecord[];
+  }>({
+    totalStudents: 0,
+    totalAttendanceRecords: []
+  })
 
   useEffect(() => {
     fetchCurrentEvent()
@@ -48,6 +55,7 @@ export default function AdminStudentAttendance() {
     if (currentEvent?.currentDay) {
       fetchAttendanceRecords()
       fetchBrigadeStats()
+      fetchTotalStats() // Add this line
     }
   }, [currentEvent, selectedSession])
 
@@ -84,6 +92,32 @@ export default function AdminStudentAttendance() {
       toast.error('Failed to fetch students')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchTotalStats = async () => {
+    if (!currentEvent?.currentDay) return
+
+    try {
+      // Fetch total students count without filters
+      const studentsResponse = await studentsApi.getStudents({
+        page: 1,
+        limit: 1, // We only need the pagination info
+      })
+      
+      // Fetch all attendance records for the session
+      const attendanceResponse = await attendanceApi.getAttendanceRecords({
+        eventDayId: currentEvent.currentDay.id,
+        session: selectedSession,
+        limit: 10000
+      })
+      
+      setTotalStats({
+        totalStudents: studentsResponse.pagination.totalItems,
+        totalAttendanceRecords: attendanceResponse.data
+      })
+    } catch (error) {
+      console.error('Failed to fetch total stats:', error)
     }
   }
 
@@ -224,12 +258,8 @@ export default function AdminStudentAttendance() {
 
   // Calculate enhanced summary statistics (session-specific) - SAME AS AdminAttendance
   const getEnhancedSummary = () => {
-    // Get all students that match current filters
-    const allFilteredStudents = students.length > 0 ? students : []
-    const totalStudents = pagination.totalItems || allFilteredStudents.length
-    
-    // Only count attendance records for the selected session
-    const sessionAttendanceRecords = attendanceRecords.filter(record => 
+    const totalStudents = totalStats.totalStudents
+    const sessionAttendanceRecords = totalStats.totalAttendanceRecords.filter(record => 
       record.session === selectedSession
     )
     
