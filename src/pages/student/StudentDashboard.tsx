@@ -563,7 +563,7 @@ export default function StudentDashboard() {
     
     <div className="space-y-4">
       <p className="text-sm text-gray-600">
-        It's recommended to change your default password to keep your account secure.
+        Visit the profile page to change your password.
       </p>
       
       <div className="flex justify-end space-x-2 pt-4">
