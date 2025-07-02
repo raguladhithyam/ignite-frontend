@@ -33,6 +33,13 @@ export default function AdminAttendance() {
     totalItems: 0,
     itemsPerPage: 20
   })
+    const [totalStats, setTotalStats] = useState<{
+    totalStudents: number;
+    totalAttendanceRecords: AttendanceRecord[];
+  }>({
+    totalStudents: 0,
+    totalAttendanceRecords: []
+  })
 
   useEffect(() => {
     fetchEvents()
@@ -45,8 +52,49 @@ export default function AdminAttendance() {
       fetchAttendanceRecords()
       fetchAttendanceSummary()
       fetchBrigadeStats()
+      fetchTotalStats() // Add this line
     }
   }, [selectedEventDay, selectedBrigade, selectedSession, pagination.currentPage])
+
+  const fetchTotalStats = async () => {
+    if (!selectedEventDay) return
+
+    try {
+      // Fetch total students count - apply brigade filter if selected
+      const studentsParams: any = {
+        page: 1,
+        limit: 1, // We only need the pagination info
+      }
+      
+      // Add brigade filter if selected
+      if (selectedBrigade) {
+        studentsParams.brigadeId = selectedBrigade
+      }
+      
+      const studentsResponse = await studentsApi.getStudents(studentsParams)
+      
+      // Fetch all attendance records for the session - apply brigade filter if selected
+      const attendanceParams: any = {
+        eventDayId: selectedEventDay,
+        session: selectedSession,
+        limit: 10000
+      }
+      
+      // Add brigade filter if selected
+      if (selectedBrigade) {
+        attendanceParams.brigadeId = selectedBrigade
+      }
+      
+      const attendanceResponse = await attendanceApi.getAttendanceRecords(attendanceParams)
+      
+      setTotalStats({
+        totalStudents: studentsResponse.pagination.totalItems,
+        totalAttendanceRecords: attendanceResponse.data
+      })
+    } catch (error) {
+      console.error('Failed to fetch total stats:', error)
+    }
+  }
 
   const fetchEvents = async () => {
     try {
@@ -170,11 +218,8 @@ export default function AdminAttendance() {
 
   // Calculate enhanced summary statistics (session-specific)
   const getEnhancedSummary = () => {
-    const filteredStudents = getFilteredStudents()
-    const totalStudents = filteredStudents.length
-    
-    // Only count attendance records for the selected session
-    const sessionAttendanceRecords = attendanceRecords.filter(record => 
+    const totalStudents = totalStats.totalStudents
+    const sessionAttendanceRecords = totalStats.totalAttendanceRecords.filter(record => 
       record.session === selectedSession
     )
     
@@ -195,6 +240,7 @@ export default function AdminAttendance() {
       presentPercentage
     }
   }
+
 
   // Extract department code from roll number
   const getDepartmentCode = (rollNumber: string) => {
