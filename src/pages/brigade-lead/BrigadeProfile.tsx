@@ -132,16 +132,6 @@ export default function BrigadeProfile() {
                   </p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-gray-500" />
-                <div>
-                  <Label className="text-sm text-gray-600">Account Created</Label>
-                  <p className="font-medium">
-                    {user.createdAt ? formatDateTime(user.createdAt) : 'N/A'}
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </CardContent>
@@ -197,57 +187,6 @@ export default function BrigadeProfile() {
               <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                 Leader Access
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Brigade Leadership Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Leadership Information</CardTitle>
-          <CardDescription>
-            Your brigade leadership details and responsibilities
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div>
-                <Label className="text-sm text-gray-600">User ID</Label>
-                <p className="font-medium font-mono">{user.id}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Leadership Status</Label>
-                <p className="font-medium">Active Leader</p>
-              </div>
-              {primaryBrigade && (
-                <div>
-                  <Label className="text-sm text-gray-600">Brigade Code</Label>
-                  <p className="font-medium font-mono">{primaryBrigade.id || 'N/A'}</p>
-                </div>
-              )}
-            </div>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-sm text-gray-600">Account Created</Label>
-                <p className="font-medium">{formatDateTime(user.createdAt)}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-600">Last Updated</Label>
-                <p className="font-medium">{formatDateTime(user.createdAt)}</p>
-              </div>
-              {primaryBrigade && (
-                <div>
-                  <Label className="text-sm text-gray-600">Brigade Status</Label>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${primaryBrigade.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <p className="font-medium">
-                      {primaryBrigade.isActive ? 'Active' : 'Inactive'}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
