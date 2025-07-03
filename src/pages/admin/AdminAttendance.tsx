@@ -211,6 +211,12 @@ export default function AdminAttendance() {
     }
   }
 
+  // Helper function to convert status for Excel export
+  const getExcelStatus = (attendanceRecord: AttendanceRecord | undefined) => {
+    if (!attendanceRecord) return 'ABSENT'
+    if (attendanceRecord.status === 'LATE') return 'ABSENT'
+    return attendanceRecord.status
+  }
 
   // Extract department code from roll number
   const getDepartmentCode = (rollNumber: string) => {
@@ -262,8 +268,7 @@ export default function AdminAttendance() {
       const totalStudents = students.length
       const presentCount = students.filter(s => s.Status === 'PRESENT').length
       const absentCount = students.filter(s => s.Status === 'ABSENT').length
-      const lateCount = students.filter(s => s.Status === 'LATE').length
-      const notMarkedCount = students.filter(s => s.Status === 'Attendance Not Marked').length
+      const notMarkedCount = 0 // Since we're now converting all non-present to absent
       const attendancePercentage = totalStudents > 0 ? ((presentCount / totalStudents) * 100).toFixed(1) : '0'
       
       return {
@@ -271,8 +276,8 @@ export default function AdminAttendance() {
         'Total Students': totalStudents,
         'Present': presentCount,
         'Absent': absentCount,
-        'Late': lateCount,
-        'Not Marked': notMarkedCount,
+        'Late': 0, // No late status in Excel
+        'Not Marked': notMarkedCount, // Always 0 now
         'Attendance %': attendancePercentage + '%'
       }
     })
@@ -304,13 +309,15 @@ export default function AdminAttendance() {
       // Prepare data for Excel with all students (session-specific) with serial numbers
       const excelData = filteredStudents.map((student, index) => {
         const attendanceRecord = getStudentAttendanceRecord(student.id)
+        const excelStatus = getExcelStatus(attendanceRecord)
+        
         return {
           'S.No': index + 1,
           'Student Name': `${student.firstName} ${student.lastName}`,
           'Roll Number': student.tempRollNumber,
           'Brigade': student.brigade?.name || 'No Brigade',
           'Session': selectedSession,
-          'Status': attendanceRecord ? attendanceRecord.status : 'Attendance Not Marked',
+          'Status': excelStatus,
           'Marked At': attendanceRecord ? formatDateTime(attendanceRecord.markedAt) : 'Not Marked'
         }
       })

@@ -369,7 +369,7 @@ export default function BrigadeAttendance() {
                               'Absent'
                             )}
                           </Button>
-                          <Button
+                          {/* <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleMarkAttendance(student.id, 'LATE')}
@@ -383,7 +383,7 @@ export default function BrigadeAttendance() {
                             ) : (
                               'Late'
                             )}
-                          </Button>
+                          </Button> */}
                         </div>
                       )}
                     </div>

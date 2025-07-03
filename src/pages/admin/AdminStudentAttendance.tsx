@@ -7,7 +7,8 @@ import { eventsApi } from '@/api/events'
 import { studentsApi } from '@/api/students'
 import { brigadesApi } from '@/api/brigades'
 import { AttendanceRecord, Event, EventDay, Student, Brigade } from '@/types'
-import { Calendar, CheckCircle, Loader2, Users, Clock, UserCheck, XCircle, AlertCircle, Search } from 'lucide-react'
+import { Calendar, CheckCircle, Loader2, Users, Clock, UserCheck, XCircle, Search } from 'lucide-react'
+// import { AlertCircle } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
@@ -546,14 +547,14 @@ export default function AdminStudentAttendance() {
                 >
                   Mark Absent
                 </Button>
-                <Button
+                {/* <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleBulkMarkAttendance('LATE')}
                   disabled={markingAttendance}
                 >
                   Mark Late
-                </Button>
+                </Button> */}
                 <Button
                   size="sm"
                   variant="outline"
@@ -662,7 +663,7 @@ export default function AdminStudentAttendance() {
                                   <XCircle className="h-3 w-3" />
                                 )}
                               </Button>
-                              <Button
+                              {/* <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleUpdateAttendance(attendanceStatus.id, 'LATE')}
@@ -674,7 +675,7 @@ export default function AdminStudentAttendance() {
                                 ) : (
                                   <AlertCircle className="h-3 w-3" />
                                 )}
-                              </Button>
+                              </Button> */}
                             </div>
                           </div>
                         ) : (
@@ -705,7 +706,7 @@ export default function AdminStudentAttendance() {
                               <XCircle className="h-4 w-4 mr-1" />
                               Absent
                             </Button>
-                            <Button
+                            {/* <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleMarkAttendance(student.id, 'LATE')}
@@ -713,7 +714,7 @@ export default function AdminStudentAttendance() {
                             >
                               <AlertCircle className="h-4 w-4 mr-1" />
                               Late
-                            </Button>
+                            </Button> */}
                           </div>
                         )}
                       </div>
