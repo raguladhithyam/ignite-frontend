@@ -81,7 +81,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       {/* Mobile overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
           onClick={() => setOpen(false)}
         />
       )}
@@ -89,35 +89,35 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-white/90 backdrop-blur-xl border-r border-white/20 shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/20 flex-shrink-0">
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-center flex-1">
-            <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
+            <div className="w-16 h-16 flex items-center justify-center">
               <img 
                 src="/Ignite.png" 
                 alt="Ignite Logo" 
-                className="w-12 h-12 object-contain filter brightness-0 invert"
+                className="w-16 h-16 object-contain"
               />
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="lg:hidden hover:bg-white/50 rounded-xl"
+            className="lg:hidden"
             onClick={() => setOpen(false)}
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
-        {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-6">
-          <nav className="px-4 space-y-2">
-            {navItems.map((item, index) => {
+        {/* Navigation - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          <nav className="p-4 space-y-2">
+            {navItems.map((item) => {
               const isActive = location.pathname === item.href
               return (
                 <Link
@@ -125,55 +125,33 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                   to={item.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 animate-slide-in-right",
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25"
-                      : "text-slate-700 hover:bg-white/60 hover:text-slate-900 hover:shadow-md"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-gray-700 hover:bg-gray-100"
                   )}
-                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <item.icon className={cn(
-                    "h-5 w-5 transition-transform duration-200 group-hover:scale-110",
-                    isActive ? "text-white" : "text-slate-500"
-                  )} />
-                  <span className="truncate">{item.name}</span>
-                  {isActive && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse" />
-                  )}
+                  <item.icon className="h-5 w-5" />
+                  {item.name}
                 </Link>
               )
             })}
           </nav>
         </div>
 
-        {/* User Info */}
-        <div className="p-4 border-t border-white/20 flex-shrink-0">
-          <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl p-4 border border-slate-200/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-white font-semibold text-sm">
-                  {getInitials(user.firstName, user.lastName)}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-500 font-medium mb-1">Logged in as</p>
-                <p className="text-sm font-semibold text-slate-900 truncate">
-                  {user.firstName} {user.lastName}
-                </p>
-                <div className="inline-flex mt-1">
-                  <span className="px-2 py-0.5 bg-white/80 text-slate-600 text-xs font-medium rounded-full border border-slate-200">
-                    {user.role.toLowerCase().replace('_', ' ')}
-                  </span>
-                </div>
-              </div>
-            </div>
+        {/* User Info - Fixed at bottom */}
+        <div className="p-4 border-t border-gray-200 flex-shrink-0">
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Logged in as</p>
+            <p className="text-sm font-medium text-gray-900">
+              {user.firstName} {user.lastName}
+            </p>
+            <p className="text-xs text-gray-500 capitalize">
+              {user.role.toLowerCase().replace('_', ' ')}
+            </p>
           </div>
         </div>
       </div>
     </>
   )
-}
-
-function getInitials(firstName: string, lastName: string) {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
 }

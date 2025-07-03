@@ -15,7 +15,7 @@ export default function Layout({ children }: LayoutProps) {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+    <div className="min-h-screen bg-gray-50">
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       
       <div className={cn(
@@ -24,19 +24,11 @@ export default function Layout({ children }: LayoutProps) {
       )}>
         <Header onMenuClick={() => setSidebarOpen(true)} />
         
-        <main className="p-4 lg:p-8">
+        <main className="p-4 lg:p-6">
           <div className="max-w-7xl mx-auto">
-            <div className="animate-fade-in">
-              {children}
-            </div>
+            {children}
           </div>
         </main>
-      </div>
-      
-      {/* Background decoration */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-100/30 to-purple-100/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-green-100/30 to-blue-100/30 rounded-full blur-3xl"></div>
       </div>
     </div>
   )
