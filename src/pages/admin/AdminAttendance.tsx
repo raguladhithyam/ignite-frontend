@@ -26,6 +26,7 @@ export default function AdminAttendance() {
   const [selectedEventDay, setSelectedEventDay] = useState('')
   const [selectedBrigade, setSelectedBrigade] = useState('')
   const [selectedSession, setSelectedSession] = useState<'FN' | 'AN'>('FN') // Default to FN
+  const [attendanceStatusFilter, setAttendanceStatusFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT'>('ALL')
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -158,9 +159,30 @@ export default function AdminAttendance() {
     return filteredStudents
   }
 
+  // Get filtered students based on selected brigade and attendance status
+  const getFilteredStudentsByAttendanceStatus = () => {
+    let filteredStudents = getFilteredStudents()
+    
+    if (attendanceStatusFilter === 'ALL') {
+      return filteredStudents
+    }
+    
+    return filteredStudents.filter(student => {
+      const attendanceRecord = getStudentAttendanceRecord(student.id)
+      
+      if (attendanceStatusFilter === 'PRESENT') {
+        return attendanceRecord && attendanceRecord.status === 'PRESENT'
+      } else if (attendanceStatusFilter === 'ABSENT') {
+        return !attendanceRecord || attendanceRecord.status === 'ABSENT' || attendanceRecord.status === 'LATE'
+      }
+      
+      return true
+    })
+  }
+
   // Get paginated students for display
   const getPaginatedStudents = () => {
-    const filteredStudents = getFilteredStudents()
+    const filteredStudents = getFilteredStudentsByAttendanceStatus()
     const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage
     const endIndex = startIndex + pagination.itemsPerPage
     
@@ -412,6 +434,243 @@ export default function AdminAttendance() {
     }
   }
 
+  const downloadFullData = async () => {
+    if (!selectedEvent) {
+      toast.error('Please select an event to download full data')
+      return
+    }
+
+    try {
+      setExporting(true)
+      
+      // Get all students
+      const allStudentsResponse = await studentsApi.getStudents({ limit: 10000 })
+      const allStudents: Student[] = allStudentsResponse.data
+      
+      if (allStudents.length === 0) {
+        toast.error('No students found')
+        return
+      }
+
+      // Get selected event details
+      const selectedEventData = getSelectedEvent()
+      if (!selectedEventData) {
+        toast.error('Selected event not found')
+        return
+      }
+
+      // Get all event days for the selected event
+      const eventDays = selectedEventData.eventDays || []
+      
+      // Sort event days by date
+      const sortedEventDays = eventDays.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      
+      // Get all attendance records for all days and sessions
+      const allAttendanceRecords: AttendanceRecord[] = []
+      for (const eventDay of sortedEventDays) {
+        try {
+          const fnResponse = await attendanceApi.getAttendanceRecords({
+            eventDayId: eventDay.id,
+            session: 'FN',
+            limit: 10000
+          })
+          const anResponse = await attendanceApi.getAttendanceRecords({
+            eventDayId: eventDay.id,
+            session: 'AN',
+            limit: 10000
+          })
+          allAttendanceRecords.push(...fnResponse.data, ...anResponse.data)
+        } catch (error) {
+          console.error(`Failed to fetch attendance for day ${eventDay.date}:`, error)
+        }
+      }
+
+      // Create column headers dynamically
+      const dateColumns: string[] = []
+      sortedEventDays.forEach((eventDay: any) => {
+        const dateStr = new Date(eventDay.date).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short'
+        })
+        dateColumns.push(`${dateStr} FN`)
+        dateColumns.push(`${dateStr} AN`)
+      })
+
+      // Define type for Excel row
+      type ExcelRow = {
+        'S.No': number
+        'Name': string
+        'Roll No': string
+        'Brigade': string
+        [key: string]: any // This allows dynamic date columns
+      }
+
+      // Prepare data for Excel
+      const excelData: ExcelRow[] = allStudents
+        .sort((a, b) => (a.tempRollNumber || '').localeCompare(b.tempRollNumber || ''))
+        .map((student, index) => {
+          const row: ExcelRow = {
+            'S.No': index + 1,
+            'Name': `${student.firstName} ${student.lastName}`,
+            'Roll No': student.tempRollNumber,
+            'Brigade': student.brigade?.name || 'No Brigade'
+          }
+
+          // Add attendance status for each date and session
+          sortedEventDays.forEach((eventDay: any) => {
+            const dateStr = new Date(eventDay.date).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short'
+            })
+            
+            // FN Session
+            const fnRecord = allAttendanceRecords.find(record => 
+              record.studentId === student.id && 
+              record.eventDayId === eventDay.id && 
+              record.session === 'FN'
+            )
+            row[`${dateStr} FN`] = fnRecord ? 
+              (fnRecord.status === 'LATE' ? 'ABSENT' : fnRecord.status) : 'ABSENT'
+
+            // AN Session
+            const anRecord = allAttendanceRecords.find(record => 
+              record.studentId === student.id && 
+              record.eventDayId === eventDay.id && 
+              record.session === 'AN'
+            )
+            row[`${dateStr} AN`] = anRecord ? 
+              (anRecord.status === 'LATE' ? 'ABSENT' : anRecord.status) : 'ABSENT'
+          })
+
+          return row
+        })
+
+      // Group students by department for department-wise sheets
+      const groupedByDepartment: Record<string, ExcelRow[]> = {}
+      excelData.forEach(student => {
+        const deptCode = getDepartmentCode(student['Roll No'])
+        if (!groupedByDepartment[deptCode]) {
+          groupedByDepartment[deptCode] = []
+        }
+        groupedByDepartment[deptCode].push(student)
+      })
+
+      // Create statistics data
+      const statsData = Object.entries(groupedByDepartment).map(([deptCode, students]) => {
+        const totalStudents = students.length
+        
+        // Calculate overall statistics across all sessions
+        let totalPresent = 0
+        let totalSessions = 0
+        
+        students.forEach((student: ExcelRow) => {
+          dateColumns.forEach((dateCol: string) => {
+            if (student[dateCol] === 'PRESENT') totalPresent++
+            totalSessions++
+          })
+        })
+        
+        const attendancePercentage = totalSessions > 0 ? ((totalPresent / totalSessions) * 100).toFixed(1) : '0'
+        
+        return {
+          'Department Code': deptCode,
+          'Total Students': totalStudents,
+          'Total Sessions': dateColumns.length,
+          'Total Present': totalPresent,
+          'Total Absent': totalSessions - totalPresent,
+          'Overall Attendance %': attendancePercentage + '%'
+        }
+      })
+
+      // Sort stats by department code
+      const sortedStatsData = statsData.sort((a, b) => {
+        if (a['Department Code'] === 'OTHERS') return 1
+        if (b['Department Code'] === 'OTHERS') return -1
+        return a['Department Code'].localeCompare(b['Department Code'])
+      })
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new()
+
+      // Column widths for overall data
+      const overallColumnWidths = [
+        { wch: 8 },  // S.No
+        { wch: 25 }, // Name
+        { wch: 15 }, // Roll No
+        { wch: 20 }, // Brigade
+        ...dateColumns.map(() => ({ wch: 12 })) // Date columns
+      ]
+
+      // 1. Overall Data Sheet
+      const overallWorksheet = XLSX.utils.json_to_sheet(excelData)
+      overallWorksheet['!cols'] = overallColumnWidths
+      XLSX.utils.book_append_sheet(workbook, overallWorksheet, 'Overall Data')
+
+      // 2. Stats Sheet
+      const statsWorksheet = XLSX.utils.json_to_sheet(sortedStatsData)
+      const statsColumnWidths = [
+        { wch: 18 }, // Department Code
+        { wch: 15 }, // Total Students
+        { wch: 15 }, // Total Sessions
+        { wch: 15 }, // Total Present
+        { wch: 15 }, // Total Absent
+        { wch: 20 }  // Overall Attendance %
+      ]
+      statsWorksheet['!cols'] = statsColumnWidths
+      XLSX.utils.book_append_sheet(workbook, statsWorksheet, 'Stats')
+
+      // 3. Department-wise sheets (merge BCW and TCW into CW)
+      const mergedGroupedByDepartment: Record<string, ExcelRow[]> = {}
+      Object.entries(groupedByDepartment).forEach(([deptCode, students]) => {
+        const finalDeptCode = (deptCode === 'BCW' || deptCode === 'TCW') ? 'CW' : deptCode
+        if (!mergedGroupedByDepartment[finalDeptCode]) {
+          mergedGroupedByDepartment[finalDeptCode] = []
+        }
+        mergedGroupedByDepartment[finalDeptCode].push(...students)
+      })
+
+      // Sort department codes
+      const sortedDeptCodes = Object.keys(mergedGroupedByDepartment).sort((a, b) => {
+        if (a === 'OTHERS') return 1
+        if (b === 'OTHERS') return -1
+        return a.localeCompare(b)
+      })
+
+      sortedDeptCodes.forEach(deptCode => {
+        const deptStudents = mergedGroupedByDepartment[deptCode]
+          .sort((a: ExcelRow, b: ExcelRow) => (a['Roll No'] || '').localeCompare(b['Roll No'] || ''))
+          .map((student: ExcelRow, index: number) => ({
+            ...student,
+            'S.No': index + 1
+          }))
+        
+        const deptWorksheet = XLSX.utils.json_to_sheet(deptStudents)
+        deptWorksheet['!cols'] = overallColumnWidths
+        
+        const sheetName = deptCode.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 31)
+        XLSX.utils.book_append_sheet(workbook, deptWorksheet, sheetName)
+      })
+
+      // Generate filename
+      const eventName = selectedEventData.name || 'Event'
+      const currentDate = new Date().toISOString().split('T')[0]
+      const filename = `${eventName}_FullData_${currentDate}.xlsx`
+        .replace(/[^a-zA-Z0-9_.-]/g, '_')
+
+      // Save file
+      XLSX.writeFile(workbook, filename)
+      
+      const totalSheets = 2 + Object.keys(mergedGroupedByDepartment).length
+      toast.success(`Downloaded full attendance data with ${totalSheets} sheets: ${filename}`)
+      
+    } catch (error) {
+      console.error('Download failed:', error)
+      toast.error('Failed to download full data')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const getSelectedEvent = () => {
     return events.find(e => e.id === selectedEvent)
   }
@@ -456,14 +715,23 @@ export default function AdminAttendance() {
           className="flex items-center gap-2"
         >
           <Download className="h-4 w-4" />
-          {exporting ? 'Exporting...' : 'Export Complete Data'}
+          {exporting ? 'Exporting...' : 'Export Data'}
+        </Button>
+        <Button 
+          onClick={downloadFullData}
+          disabled={!selectedEvent || loading || exporting}
+          className="flex items-center gap-2"
+          variant="outline"
+        >
+          <Download className="h-4 w-4" />
+          {exporting ? 'Downloading...' : 'Download Full Data'}
         </Button>
       </div>
 
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Event</label>
               <select
@@ -513,6 +781,22 @@ export default function AdminAttendance() {
                     {brigade.name}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Attendance Status</label>
+              <select
+                value={attendanceStatusFilter}
+                onChange={(e) => {
+                  setAttendanceStatusFilter(e.target.value as 'ALL' | 'PRESENT' | 'ABSENT')
+                  setPagination(prev => ({ ...prev, currentPage: 1 }))
+                }}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="ALL">All Status</option>
+                <option value="PRESENT">Present Only</option>
+                <option value="ABSENT">Absent Only</option>
               </select>
             </div>
 
