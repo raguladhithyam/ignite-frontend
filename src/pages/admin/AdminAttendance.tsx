@@ -26,7 +26,7 @@ export default function AdminAttendance() {
   const [selectedEventDay, setSelectedEventDay] = useState('')
   const [selectedBrigade, setSelectedBrigade] = useState('')
   const [selectedSession, setSelectedSession] = useState<'FN' | 'AN'>('FN') // Default to FN
-  const [attendanceStatusFilter, setAttendanceStatusFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT'>('ALL')
+  const [attendanceStatusFilter, setAttendanceStatusFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT' | 'NOT_MARKED'>('ALL')
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -173,7 +173,9 @@ export default function AdminAttendance() {
       if (attendanceStatusFilter === 'PRESENT') {
         return attendanceRecord && attendanceRecord.status === 'PRESENT'
       } else if (attendanceStatusFilter === 'ABSENT') {
-        return !attendanceRecord || attendanceRecord.status === 'ABSENT' || attendanceRecord.status === 'LATE'
+        return attendanceRecord && (attendanceRecord.status === 'ABSENT' || attendanceRecord.status === 'LATE')
+      } else if (attendanceStatusFilter === 'NOT_MARKED') {
+        return !attendanceRecord
       }
       
       return true
@@ -461,9 +463,14 @@ export default function AdminAttendance() {
 
       // Get all event days for the selected event
       const eventDays = selectedEventData.eventDays || []
-      
+
+      // Filter event days to only include dates up to today
+      const today = new Date()
+      today.setHours(23, 59, 59, 999) // Set to end of today
+      const filteredEventDays = eventDays.filter((day: any) => new Date(day.date) <= today)
+
       // Sort event days by date
-      const sortedEventDays = eventDays.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      const sortedEventDays = filteredEventDays.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
       
       // Get all attendance records for all days and sessions
       const allAttendanceRecords: AttendanceRecord[] = []
@@ -709,23 +716,25 @@ export default function AdminAttendance() {
           <h1 className="text-3xl font-bold text-gray-900">Attendance Records</h1>
           <p className="text-gray-600 mt-2">View and manage attendance records for all students</p>
         </div>
-        <Button 
-          onClick={exportToExcel}
-          disabled={!selectedEventDay || loading || exporting}
-          className="flex items-center gap-2"
-        >
-          <Download className="h-4 w-4" />
-          {exporting ? 'Exporting...' : 'Export Data'}
-        </Button>
-        <Button 
-          onClick={downloadFullData}
-          disabled={!selectedEvent || loading || exporting}
-          className="flex items-center gap-2"
-          variant="outline"
-        >
-          <Download className="h-4 w-4" />
-          {exporting ? 'Downloading...' : 'Download Full Data'}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={exportToExcel}
+            disabled={!selectedEventDay || loading || exporting}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            {exporting ? 'Exporting...' : 'Export Data'}
+          </Button>
+          <Button 
+            onClick={downloadFullData}
+            disabled={!selectedEvent || loading || exporting}
+            className="flex items-center gap-2"
+            variant="outline"
+          >
+            <Download className="h-4 w-4" />
+            {exporting ? 'Downloading...' : 'Download Full Data'}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -789,7 +798,7 @@ export default function AdminAttendance() {
               <select
                 value={attendanceStatusFilter}
                 onChange={(e) => {
-                  setAttendanceStatusFilter(e.target.value as 'ALL' | 'PRESENT' | 'ABSENT')
+                  setAttendanceStatusFilter(e.target.value as 'ALL' | 'PRESENT' | 'ABSENT' | 'NOT_MARKED')
                   setPagination(prev => ({ ...prev, currentPage: 1 }))
                 }}
                 className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
@@ -797,6 +806,7 @@ export default function AdminAttendance() {
                 <option value="ALL">All Status</option>
                 <option value="PRESENT">Present Only</option>
                 <option value="ABSENT">Absent Only</option>
+                <option value="NOT_MARKED">Not Marked Only</option>
               </select>
             </div>
 
