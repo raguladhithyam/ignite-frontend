@@ -16,7 +16,8 @@ import {
   FileText,
   ClipboardCheck,
   ScrollText,
-  UserPlus
+  UserPlus,
+  LogOut
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -56,7 +57,7 @@ const studentNavItems = [
 ]
 
 export default function Sidebar({ open, setOpen }: SidebarProps) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const location = useLocation()
 
   if (!user) return null
@@ -78,46 +79,61 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay with blur effect */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden transition-all duration-300"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar with glassmorphism */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col",
+          "fixed inset-y-0 left-0 z-50 w-72 transform transition-all duration-500 ease-out lg:translate-x-0 flex flex-col",
+          "bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-r border-white/20 dark:border-gray-800/50",
+          "shadow-2xl shadow-indigo-500/10",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Header - Fixed */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+        {/* Header - Enhanced */}
+        <div className="flex items-center justify-between p-6 border-b border-white/10 dark:border-gray-800/50 flex-shrink-0">
           <div className="flex items-center justify-center flex-1">
-            <div className="w-16 h-16 flex items-center justify-center">
-              <img 
-                src="/Ignite.png" 
-                alt="Ignite Logo" 
-                className="w-16 h-16 object-contain"
-              />
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-full blur-lg group-hover:blur-xl transition-all duration-300" />
+              <div className="relative w-20 h-20 flex items-center justify-center bg-white/50 dark:bg-gray-800/50 rounded-full backdrop-blur-sm border border-white/20">
+                <img 
+                  src="/Ignite.png" 
+                  alt="Ignite Logo" 
+                  className="w-16 h-16 object-contain"
+                />
+              </div>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="lg:hidden"
+            className="lg:hidden hover:bg-white/20 dark:hover:bg-gray-800/40 transition-colors duration-300"
             onClick={() => setOpen(false)}
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
-        {/* Navigation - Scrollable */}
-        <div className="flex-1 overflow-y-auto">
-          <nav className="p-4 space-y-2">
-            {navItems.map((item) => {
+        {/* Brand Name */}
+        <div className="px-6 py-4 border-b border-white/10 dark:border-gray-800/50">
+          <h1 className="text-2xl font-bold text-gradient text-center">
+            Ignite
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center mt-1">
+            Attendance System
+          </p>
+        </div>
+
+        {/* Navigation - Enhanced */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <nav className="space-y-2">
+            {navItems.map((item, index) => {
               const isActive = location.pathname === item.href
               return (
                 <Link
@@ -125,30 +141,55 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                   to={item.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-gray-700 hover:bg-gray-100"
+                    "nav-link",
+                    isActive ? "active" : "text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary",
+                    `delay-${Math.min(index + 1, 5)} fade-in`
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
+                  <div className="relative">
+                    <item.icon className={cn(
+                      "h-5 w-5 transition-all duration-300",
+                      isActive ? "text-primary scale-110" : "group-hover:scale-110"
+                    )} />
+                    {isActive && (
+                      <div className="absolute inset-0 bg-primary/20 rounded-lg blur-md" />
+                    )}
+                  </div>
+                  <span className="font-medium">{item.name}</span>
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  )}
                 </Link>
               )
             })}
           </nav>
         </div>
 
-        {/* User Info - Fixed at bottom */}
-        <div className="p-4 border-t border-gray-200 flex-shrink-0">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-600 mb-1">Logged in as</p>
-            <p className="text-sm font-medium text-gray-900">
-              {user.firstName} {user.lastName}
-            </p>
-            <p className="text-xs text-gray-500 capitalize">
-              {user.role.toLowerCase().replace('_', ' ')}
-            </p>
+        {/* User Info - Enhanced */}
+        <div className="p-4 border-t border-white/10 dark:border-gray-800/50 flex-shrink-0">
+          <div className="modern-card p-4 mb-4">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                  {user.role.toLowerCase().replace('_', ' ')}
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={logout}
+              variant="outline"
+              size="sm"
+              className="w-full bg-white/50 dark:bg-gray-800/50 border-white/20 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-300"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </div>
