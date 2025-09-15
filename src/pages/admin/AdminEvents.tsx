@@ -149,7 +149,7 @@ export default function AdminEvents() {
       toast.success('Event deleted successfully', { duration: 2000 })
       fetchEvents()
     } catch (error) {
-      toast.error('Failed to delete event')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete event')
     } finally {
       setDeleting(false)
       setShowDeleteDialog(false)

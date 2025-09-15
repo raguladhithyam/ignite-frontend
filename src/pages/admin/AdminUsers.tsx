@@ -60,7 +60,7 @@ export default function AdminUsers() {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 10
+    itemsPerPage: 100000
   })
   const [showModal, setShowModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -244,7 +244,7 @@ export default function AdminUsers() {
       setDeleteDialogOpen(false)
       setUserToDelete(null)
     } catch (error) {
-      toast.error('Failed to delete user')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete user')
     } finally {
       setIsDeleting(false)
     }
@@ -299,7 +299,7 @@ export default function AdminUsers() {
       setBulkDeleteDialogOpen(false)
       setSelectedUsers(new Set())
     } catch (error) {
-      toast.error('Failed to delete users')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete users')
     } finally {
       setIsBulkDeleting(false)
     }
@@ -327,7 +327,7 @@ export default function AdminUsers() {
       setRoleDeleteDialogOpen(false)
       setRoleToDelete('')
     } catch (error) {
-      toast.error('Failed to delete users')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete users')
     } finally {
       setIsRoleDeleting(false)
     }

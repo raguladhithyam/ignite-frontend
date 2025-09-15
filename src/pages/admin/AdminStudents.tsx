@@ -7,7 +7,7 @@ import { studentsApi } from '@/api/students'
 import { brigadesApi } from '@/api/brigades'
 import { uploadsApi } from '@/api/uploads'
 import { Student, Brigade } from '@/types'
-import { Search, Plus, Upload, Download, Edit, Trash2, Loader2 } from 'lucide-react'
+import { Search, Plus, Upload, Download, Edit, Trash2, Loader2, MoreHorizontal } from 'lucide-react'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import StudentModal from '@/components/modals/StudentModal'
@@ -22,6 +22,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export default function AdminStudents() {
   const [students, setStudents] = useState<Student[]>([])
@@ -33,7 +41,7 @@ export default function AdminStudents() {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 10
+    itemsPerPage: 100000
   })
   const [showStudentModal, setShowStudentModal] = useState(false)
   const [showUploadModal, setShowUploadModal] = useState(false)
@@ -41,6 +49,13 @@ export default function AdminStudents() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Brigade-based delete state
+  const [brigadeDeleteDialogOpen, setBrigadeDeleteDialogOpen] = useState(false)
+  const [brigadeToDelete, setBrigadeToDelete] = useState<string>('')
+  const [isBrigadeDeleting, setIsBrigadeDeleting] = useState(false)
+  const [allStudentsDeleteDialogOpen, setAllStudentsDeleteDialogOpen] = useState(false)
+  const [isAllStudentsDeleting, setIsAllStudentsDeleting] = useState(false)
 
   const handleDeleteClick = (id: string) => {
     setStudentToDelete(id)
@@ -58,7 +73,7 @@ export default function AdminStudents() {
       setDeleteDialogOpen(false)
       setStudentToDelete(null)
     } catch (error) {
-      toast.error('Failed to delete student')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete student')
     } finally {
       setIsDeleting(false)
     }
@@ -67,6 +82,65 @@ export default function AdminStudents() {
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false)
     setStudentToDelete(null)
+  }
+
+  // Brigade-based delete functions
+  const handleBrigadeDeleteClick = (brigadeId: string) => {
+    setBrigadeToDelete(brigadeId)
+    setBrigadeDeleteDialogOpen(true)
+  }
+
+  const handleBrigadeDeleteConfirm = async () => {
+    try {
+      setIsBrigadeDeleting(true)
+      const studentsToDelete = students.filter(student => student.brigadeId === brigadeToDelete)
+      
+      await Promise.all(studentsToDelete.map(student => studentsApi.deleteStudent(student.id)))
+      
+      const brigadeName = brigades.find(b => b.id === brigadeToDelete)?.name || 'Unknown Brigade'
+      toast.success(`All students from ${brigadeName} deleted successfully`, { duration: 2000 })
+      fetchStudents()
+      setBrigadeDeleteDialogOpen(false)
+      setBrigadeToDelete('')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete students')
+    } finally {
+      setIsBrigadeDeleting(false)
+    }
+  }
+
+  const handleBrigadeDeleteCancel = () => {
+    setBrigadeDeleteDialogOpen(false)
+    setBrigadeToDelete('')
+  }
+
+  const handleAllStudentsDeleteClick = () => {
+    setAllStudentsDeleteDialogOpen(true)
+  }
+
+  const handleAllStudentsDeleteConfirm = async () => {
+    try {
+      setIsAllStudentsDeleting(true)
+      
+      await Promise.all(students.map(student => studentsApi.deleteStudent(student.id)))
+      
+      toast.success(`All ${students.length} students deleted successfully`, { duration: 2000 })
+      fetchStudents()
+      setAllStudentsDeleteDialogOpen(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete all students')
+    } finally {
+      setIsAllStudentsDeleting(false)
+    }
+  }
+
+  const handleAllStudentsDeleteCancel = () => {
+    setAllStudentsDeleteDialogOpen(false)
+  }
+
+  // Helper function to get student count for a brigade
+  const getBrigadeStudentCount = (brigadeId: string) => {
+    return students.filter(student => student.brigadeId === brigadeId).length
   }
 
   useEffect(() => {
@@ -149,6 +223,38 @@ export default function AdminStudents() {
             <Plus className="h-4 w-4 mr-2" />
             Add Student
           </Button>
+          
+          {/* Actions Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <MoreHorizontal className="h-4 w-4 mr-2" />
+                Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Delete by Brigade</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {brigades.map((brigade) => (
+                <DropdownMenuItem 
+                  key={brigade.id}
+                  onClick={() => handleBrigadeDeleteClick(brigade.id)}
+                  className="text-red-600"
+                  disabled={getBrigadeStudentCount(brigade.id) === 0}
+                >
+                  Delete All from {brigade.name} ({getBrigadeStudentCount(brigade.id)})
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={handleAllStudentsDeleteClick}
+                className="text-red-600"
+                disabled={students.length === 0}
+              >
+                Delete All Students ({students.length})
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -351,6 +457,71 @@ export default function AdminStudents() {
                 </>
               ) : (
                 'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Brigade Delete Confirmation Dialog */}
+      <AlertDialog open={brigadeDeleteDialogOpen} onOpenChange={setBrigadeDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Students from Brigade</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all students from "{brigades.find(b => b.id === brigadeToDelete)?.name || 'Unknown Brigade'}"? 
+              This will delete {getBrigadeStudentCount(brigadeToDelete)} students. This action cannot be undone and will permanently 
+              delete all their data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleBrigadeDeleteCancel} disabled={isBrigadeDeleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBrigadeDeleteConfirm}
+              disabled={isBrigadeDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isBrigadeDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                `Delete All ${getBrigadeStudentCount(brigadeToDelete)} Students`
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* All Students Delete Confirmation Dialog */}
+      <AlertDialog open={allStudentsDeleteDialogOpen} onOpenChange={setAllStudentsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Students</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete ALL students? This will delete {students.length} students. 
+              This action cannot be undone and will permanently delete all student data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleAllStudentsDeleteCancel} disabled={isAllStudentsDeleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleAllStudentsDeleteConfirm}
+              disabled={isAllStudentsDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isAllStudentsDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                `Delete All ${students.length} Students`
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

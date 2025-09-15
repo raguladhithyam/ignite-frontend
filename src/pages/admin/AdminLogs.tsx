@@ -342,22 +342,34 @@ const AdminLogs: React.FC = () => {
             </button>
             
             <div className="flex gap-2">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const page = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i))
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 text-sm rounded-md ${
-                      currentPage === page
-                        ? 'bg-blue-600 text-white'
-                        : 'border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              })}
+              {(() => {
+                const pages = []
+                const maxVisible = 5
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2))
+                let endPage = Math.min(totalPages, startPage + maxVisible - 1)
+                
+                // Adjust start page if we're near the end
+                if (endPage - startPage + 1 < maxVisible) {
+                  startPage = Math.max(1, endPage - maxVisible + 1)
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i)}
+                      className={`px-3 py-1 text-sm rounded-md ${
+                        currentPage === i
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  )
+                }
+                return pages
+              })()}
             </div>
             
             <button

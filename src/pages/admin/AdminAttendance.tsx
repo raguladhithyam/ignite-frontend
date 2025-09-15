@@ -242,24 +242,60 @@ export default function AdminAttendance() {
     return attendanceRecord.status
   }
 
-  // Extract department code from roll number
-  const getDepartmentCode = (rollNumber: string) => {
-    if (!rollNumber || rollNumber.length < 5) return 'OTHERS'
+  // Extract department code from roll number or last name
+  const getDepartmentCode = (rollNumber: string, lastName?: string) => {
+    if (!rollNumber) return 'OTHERS'
     
-    // Extract characters 3-5 (0-indexed: 2-4) for department code
-    const deptCode = rollNumber.substring(2, 5)
-    
-    // Group BCW and TCW under CW first (before other checks)
-    if (deptCode === 'BCW' || deptCode === 'TCW') {
-      return 'CW'
+    // Handle 8-character roll numbers (like 22BCW001)
+    if (rollNumber.length === 8) {
+      // Extract characters 3-5 (0-indexed: 2-4) for department code
+      const deptCode = rollNumber.substring(2, 5)
+      
+      // Group BCW and TCW under CW first (before other checks)
+      if (deptCode === 'BCW' || deptCode === 'TCW') {
+        return 'CW'
+      }
+      
+      // Check if third character (index 2) starts with 'B' for other departments
+      if (rollNumber.charAt(2) !== 'B') {
+        return 'OTHERS'
+      }
+      
+      return deptCode
     }
     
-    // Check if third character (index 2) starts with 'B' for other departments
-    if (rollNumber.charAt(2) !== 'B') {
-      return 'OTHERS'
+    // Handle 5-character roll numbers (temp roll numbers like 11861)
+    if (rollNumber.length === 5) {
+      // Use last name as department code with specific mapping
+      if (lastName && lastName.length >= 3) {
+        const lastNameUpper = lastName.toUpperCase()
+        // Extract first 3 characters of last name as department code
+        const deptCode = lastNameUpper.substring(0, 3)
+        
+        // Department code mapping for 5-character roll numbers
+        const departmentMapping: Record<string, string> = {
+          'BAE': 'AERO',
+          'BAD': 'AI&DS',
+          'BAU': 'AUTO',
+          'BBT': 'BT',
+          'BCE': 'CIVIL',
+          'BCS': 'CSC',
+          'BEE': 'EEE',
+          'BEC': 'ECE',
+          'BEI': 'E&I',
+          'BFT': 'FT',
+          'BIT': 'IT',
+          'BME': 'MECH',
+          'BMC': 'MCE',
+          'BTT': 'TT'
+        }
+        
+        // Return mapped department code or original if not found
+        return departmentMapping[deptCode] || deptCode
+      }
     }
     
-    return deptCode
+    return 'OTHERS'
   }
 
   // Group students by department
@@ -267,7 +303,7 @@ export default function AdminAttendance() {
     const grouped: Record<string, any[]> = {}
     
     students.forEach((student) => {
-      const deptCode = getDepartmentCode(student['Roll Number'])
+      const deptCode = getDepartmentCode(student['Roll Number'], student['Student Name']?.split(' ').pop())
       if (!grouped[deptCode]) {
         grouped[deptCode] = []
       }
@@ -555,7 +591,7 @@ export default function AdminAttendance() {
       // Group students by department for department-wise sheets
       const groupedByDepartment: Record<string, ExcelRow[]> = {}
       excelData.forEach(student => {
-        const deptCode = getDepartmentCode(student['Roll No'])
+        const deptCode = getDepartmentCode(student['Roll No'], student['Name']?.split(' ').pop())
         if (!groupedByDepartment[deptCode]) {
           groupedByDepartment[deptCode] = []
         }

@@ -97,7 +97,7 @@ export default function AdminBrigades() {
       toast.success('Brigade deleted successfully', { duration: 2000 })
       fetchBrigades()
     } catch (error) {
-      toast.error('Failed to delete brigade')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete brigade')
     } finally {
       setDeleting(false)
       setShowDeleteAlert(false)

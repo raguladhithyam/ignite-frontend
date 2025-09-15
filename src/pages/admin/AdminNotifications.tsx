@@ -102,7 +102,7 @@ export default function AdminNotifications() {
       setShowDeleteDialog(false)
       setNotificationToDelete(null)
     } catch (error) {
-      toast.error('Failed to delete notification')
+      toast.error(error instanceof Error ? error.message : 'Failed to delete notification')
     } finally {
       setDeletingNotification(false)
     }
